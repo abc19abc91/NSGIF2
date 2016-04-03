@@ -6,10 +6,8 @@
 
 #import "NSGIF.h"
 
-@implementation NSGIF
-
 // Declare constants
-#define fileName     @"NSGIF.gif"
+#define defaultStaticFileName     @"NSGIF.gif"
 #define timeInterval @(600)
 #define tolerance    @(0.01)
 
@@ -21,26 +19,58 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     GIFSizeOriginal = 10
 };
 
+
+@implementation NSGIFRequest
+- (NSURL *)destinationVideo {
+    if(_destinationVideo){
+        return _destinationVideo;
+    }
+    NSAssert(self.sourceVideo, @"URL of a source video required if didn't provide destination url.");
+    NSString *temporaryFile = [NSTemporaryDirectory() stringByAppendingString:defaultStaticFileName];
+    return [NSURL fileURLWithPath:temporaryFile];
+}
+
+- (void)assert{
+    NSParameterAssert(self.sourceVideo);
+    NSAssert(self.framesPerSecond>0, @"framesPerSecond must be higer than 0.");
+}
+
++ (NSGIFRequest *__nonnull)requestForOptimizedDefaults:(NSURL *__nullable)urlForSourceVideo
+                                           destination:(NSURL *__nullable)videoFileURL {
+
+    NSGIFRequest * request = [[NSGIFRequest alloc] init];
+    request.sourceVideo = urlForSourceVideo;
+    request.destinationVideo = videoFileURL;
+    request.delayTime = 0.13f;
+    request.framesPerSecond = 4;
+    return request;
+}
+
++ (NSGIFRequest *__nonnull)requestForLivePhoto:(NSURL *__nullable)urlForSourceVideo
+                                   destination:(NSURL *__nullable)videoFileURL {
+
+    NSGIFRequest * request = [self requestForOptimizedDefaults:urlForSourceVideo destination:videoFileURL];
+    request.maxVideoLength = 3;
+    return request;
+}
+
+@end
+
+@implementation NSGIF
+
 #pragma mark - Public methods
++ (void)optimalGIFfromURL:(NSGIFRequest *)request completion:(void (^)(NSURL *))completionBlock {
+    [request assert];
 
-+ (void)optimalGIFfromURL:(NSURL*)videoURL loopCount:(int)loopCount completion:(void(^)(NSURL *GifURL))completionBlock {
-    [self optimalGIFfromURL:videoURL toURL:nil loopCount:loopCount completion:completionBlock];
-}
-
-+ (void)optimalGIFfromURL:(NSURL *)videoURL toURL:(NSURL *)destFileURL loopCount:(int)loopCount completion:(void(^)(NSURL *GifURL))completionBlock {
-    [self optimalGIFfromURL:videoURL toURL:nil delayTime:.13f loopCount:loopCount completion:completionBlock];
-}
-
-+ (void)optimalGIFfromURL:(NSURL *)videoURL toURL:(NSURL *)destFileURL delayTime:(float)delayTime loopCount:(int)loopCount completion:(void (^)(NSURL *GifURL))completionBlock {
     // Create properties dictionaries
-    NSDictionary *fileProperties = [self filePropertiesWithLoopCount:loopCount];
-    NSDictionary *frameProperties = [self framePropertiesWithDelayTime:delayTime];
-    
-    AVURLAsset *asset = [AVURLAsset assetWithURL:videoURL];
-    
-    float videoWidth = [[[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0] naturalSize].width;
-    float videoHeight = [[[asset tracksWithMediaType:AVMediaTypeVideo] objectAtIndex:0] naturalSize].height;
-    
+    NSDictionary *fileProperties = [self filePropertiesWithLoopCount:request.loopCount];
+    NSDictionary *frameProperties = [self framePropertiesWithDelayTime:request.delayTime];
+
+    AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideo];
+
+    CGFloat videoWidth = [[asset tracksWithMediaType:AVMediaTypeVideo][0] naturalSize].width;
+    CGFloat videoHeight = [[asset tracksWithMediaType:AVMediaTypeVideo][0] naturalSize].height;
+
     GIFSize optimalSize = GIFSizeMedium;
     if (videoWidth >= 1200 || videoHeight >= 1200)
         optimalSize = GIFSizeVeryLow;
@@ -50,69 +80,59 @@ typedef NS_ENUM(NSInteger, GIFSize) {
         optimalSize = GIFSizeMedium;
     else if (videoWidth < 400|| videoHeight < 400)
         optimalSize = GIFSizeHigh;
-    
+
     // Get the length of the video in seconds
-    float videoLength = (float)asset.duration.value/asset.duration.timescale;
-    int framesPerSecond = 4;
-    int frameCount = videoLength*framesPerSecond;
-    
+    CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
+    NSUInteger frameCount = (NSUInteger) (videoLength * request.framesPerSecond);
+
     // How far along the video track we want to move, in seconds.
-    float increment = (float)videoLength/frameCount;
-    
+    CGFloat increment = (CGFloat)videoLength/frameCount;
+
     // Add frames to the buffer
     NSMutableArray *timePoints = [NSMutableArray array];
     for (int currentFrame = 0; currentFrame<frameCount; ++currentFrame) {
-        float seconds = (float)increment * currentFrame;
+        CGFloat seconds = (CGFloat)increment * currentFrame;
         CMTime time = CMTimeMakeWithSeconds(seconds, [timeInterval intValue]);
         [timePoints addObject:[NSValue valueWithCMTime:time]];
     }
-    
+
     // Prepare group for firing completion block
     dispatch_group_t gifQueue = dispatch_group_create();
     dispatch_group_enter(gifQueue);
-    
+
     __block NSURL *gifURL;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
-        gifURL = [self createGIFforTimePoints:timePoints fromURL:videoURL toURL:destFileURL fileProperties:fileProperties frameProperties:frameProperties frameCount:frameCount gifSize:optimalSize];
+        gifURL = [self createGIFforTimePoints:timePoints fromURL:request.sourceVideo toURL:request.destinationVideo fileProperties:fileProperties frameProperties:frameProperties frameCount:frameCount gifSize:optimalSize];
 
         dispatch_group_leave(gifQueue);
     });
-    
+
     dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
         // Return GIF URL
         completionBlock(gifURL);
     });
-
 }
 
-+ (void)createGIFfromURL:(NSURL*)videoURL withFrameCount:(int)frameCount delayTime:(float)delayTime loopCount:(int)loopCount completion:(void(^)(NSURL *GifURL))completionBlock {
-    
-    [self createGIFfromURL:videoURL toURL:nil withFrameCount:frameCount delayTime:delayTime loopCount:loopCount completion:completionBlock];
-}
++ (void)createGIFfromURL:(NSGIFRequest *__nullable)request completion:(void (^ __nullable)(NSURL *__nullable GifURL))completionBlock {
+    [request assert];
 
-+ (void)createGIFfromURL:(NSURL*)videoURL toURL:(NSURL *)destFileURL withFrameCount:(int)frameCount delayTime:(float)delayTime loopCount:(int)loopCount completion:(void(^)(NSURL *GifURL))completionBlock {
-    // Convert the video at the given URL to a GIF, and return the GIF's URL if it was created.
-    // The frames are spaced evenly over the video, and each has the same duration.
-    // delayTime is the amount of time for each frame in the GIF.
-    // loopCount is the number of times the GIF will repeat. Defaults to 0, which means repeat infinitely.
-    
     // Create properties dictionaries
-    NSDictionary *fileProperties = [self filePropertiesWithLoopCount:loopCount];
-    NSDictionary *frameProperties = [self framePropertiesWithDelayTime:delayTime];
-    
-    AVURLAsset *asset = [AVURLAsset assetWithURL:videoURL];
+    NSDictionary *fileProperties = [self filePropertiesWithLoopCount:request.loopCount];
+    NSDictionary *frameProperties = [self framePropertiesWithDelayTime:request.delayTime];
+
+    AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideo];
 
     // Get the length of the video in seconds
-    float videoLength = (float)asset.duration.value/asset.duration.timescale;
-    
+    CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
+
     // How far along the video track we want to move, in seconds.
-    float increment = (float)videoLength/frameCount;
-    
+    CGFloat increment = (CGFloat)videoLength/request.frameCount;
+
     // Add frames to the buffer
     NSMutableArray *timePoints = [NSMutableArray array];
-    for (int currentFrame = 0; currentFrame<frameCount; ++currentFrame) {
-        float seconds = (float)increment * currentFrame;
+    for (int currentFrame = 0; currentFrame<request.frameCount; ++currentFrame) {
+        CGFloat seconds = (CGFloat)increment * currentFrame;
         CMTime time = CMTimeMakeWithSeconds(seconds, [timeInterval intValue]);
         [timePoints addObject:[NSValue valueWithCMTime:time]];
     }
@@ -120,33 +140,31 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     // Prepare group for firing completion block
     dispatch_group_t gifQueue = dispatch_group_create();
     dispatch_group_enter(gifQueue);
-    
+
     __block NSURL *gifURL;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
-        gifURL = [self createGIFforTimePoints:timePoints fromURL:videoURL toURL:destFileURL fileProperties:fileProperties frameProperties:frameProperties frameCount:frameCount gifSize:GIFSizeMedium];
+        gifURL = [self createGIFforTimePoints:timePoints fromURL:request.sourceVideo toURL:request.destinationVideo fileProperties:fileProperties frameProperties:frameProperties frameCount:request.frameCount gifSize:GIFSizeMedium];
 
         dispatch_group_leave(gifQueue);
     });
-    
+
     dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
         // Return GIF URL
         completionBlock(gifURL);
     });
-    
 }
 
 #pragma mark - Base methods
 
 + (NSURL *)createGIFforTimePoints:(NSArray *)timePoints fromURL:(NSURL *)url toURL:(NSURL *)destFileURL fileProperties:(NSDictionary *)fileProperties frameProperties:(NSDictionary *)frameProperties frameCount:(int)frameCount gifSize:(GIFSize)gifSize{
-    
-    NSString *temporaryFile = [NSTemporaryDirectory() stringByAppendingString:fileName];
-    NSURL *fileURL = destFileURL ?:[NSURL fileURLWithPath:temporaryFile];
-    if (fileURL == nil)
-        return nil;
+    NSParameterAssert(timePoints);
+    NSParameterAssert(url);
+    NSParameterAssert(destFileURL);
+    NSParameterAssert(fileProperties);
+    NSParameterAssert(frameProperties);
 
-    CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)fileURL, kUTTypeGIF , frameCount, NULL);
-    
+    CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)destFileURL, kUTTypeGIF , frameCount, NULL);
 
     AVURLAsset *asset = [AVURLAsset URLAssetWithURL:url options:nil];
     AVAssetImageGenerator *generator = [AVAssetImageGenerator assetImageGeneratorWithAsset:asset];
@@ -162,7 +180,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
         CGImageRef imageRef;
         
         #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-            imageRef = (float)gifSize/10 != 1 ? createImageWithScale([generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error], (float)gifSize/10) : [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
+            imageRef = (CGFloat)gifSize/10 != 1 ? createImageWithScale([generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error], (CGFloat)gifSize/10) : [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
         #elif TARGET_OS_MAC
             imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
         #endif
@@ -181,6 +199,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
         }
         CGImageDestinationAddImage(destination, imageRef, (CFDictionaryRef)frameProperties);
         CGImageRelease(imageRef);
+        NSLog(@"%@ %d, %d",time, [timePoints indexOfObject:time], timePoints.count);
     }
     CGImageRelease(previousImageRefCopy);
     
@@ -195,12 +214,12 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     }
     CFRelease(destination);
     
-    return fileURL;
+    return destFileURL;
 }
 
 #pragma mark - Helpers
 
-CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
+CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     
     #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
     CGSize newSize = CGSizeMake(CGImageGetWidth(imageRef)*scale, CGImageGetHeight(imageRef)*scale);
@@ -239,12 +258,11 @@ CGImageRef createImageWithScale(CGImageRef imageRef, float scale) {
              };
 }
 
-+ (NSDictionary *)framePropertiesWithDelayTime:(float)delayTime {
++ (NSDictionary *)framePropertiesWithDelayTime:(CGFloat)delayTime {
 
     return @{(NSString *)kCGImagePropertyGIFDictionary:
                 @{(NSString *)kCGImagePropertyGIFDelayTime: @(delayTime)},
                 (NSString *)kCGImagePropertyColorModel:(NSString *)kCGImagePropertyColorModelRGB
             };
 }
-
 @end
