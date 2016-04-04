@@ -10,7 +10,7 @@ There are 2 ways you can add NSGIF to your project:
 
 ### Manual
 
-Simply import the 'NSGIF' into your project then import the following in the class you want to use it: 
+Simply import the 'NSGIF' into your project then import the following in the class you want to use it:
 ```objective-c
 #import "NSGIF.h"
 ```      
@@ -27,7 +27,7 @@ pod "NSGIF", "~> 1.0"
 //default request automatically set the best frame count, delay time or size. see interface file for more options.
 NSGIFRequest * request = [NSGIFRequest requestWithSourceVideo:tempFileURL destination:gifFileURL];
 request.progressHandler = ^(double progress, NSUInteger position, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
-    NSLog(@"%f - %d - %d - %d - %@",progress, position, length, time.value, frameProperties);
+    NSLog(@"%f - %lu - %lu - %lld - %@", progress, position, length, time.value, frameProperties);
 };
 
 [NSGIF create:request completion:^(NSURL *GifURL) {
@@ -69,4 +69,3 @@ Pull requests are more than welcomed!
 
 ## License
 Usage is provided under the [MIT License](http://http//opensource.org/licenses/mit-license.php). See LICENSE for the full details.
-
