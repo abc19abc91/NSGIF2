@@ -21,9 +21,9 @@
 @interface NSGIFRequest : NSObject
 
 /* required. a file's url of source video */
-@property(nullable, nonatomic) NSURL * sourceVideo;
+@property(nullable, nonatomic) NSURL * sourceVideoFile;
 /* optional. defaults to nil. automatically assign the file name of source video (ex: IMG_0000.MOV -> IMG_0000.gif)  */
-@property(nullable, nonatomic) NSURL * destinationVideo;
+@property(nullable, nonatomic) NSURL * destinationVideoFile;
 /* optional. number of frames in seconds */
 @property(nonatomic, assign) NSUInteger framesPerSecond;
 /* optional. How far along the video track we want to move, in seconds. */
@@ -35,8 +35,10 @@
 /* optional. defaults to 0, unit is seconds, which means unlimited */
 @property(nonatomic, assign) NSTimeInterval maxVideoLength;
 
-+ (NSGIFRequest * __nonnull)requestForOptimizedDefaults:(NSURL * __nullable)urlForSourceVideo destination:(NSURL * __nullable)videoFileURL;
-+ (NSGIFRequest * __nonnull)requestForLivePhoto:(NSURL * __nullable)urlForSourceVideo destination:(NSURL * __nullable)videoFileURL;
+- (NSGIFRequest * __nonnull)initWithSourceVideo:(NSURL * __nullable)fileURL;
++ (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL;
++ (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL destination:(NSURL * __nullable)videoFileURL;
++ (NSGIFRequest * __nonnull)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL;
 @end
 
 @interface NSGIF : NSObject

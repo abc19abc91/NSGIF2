@@ -21,39 +21,46 @@ typedef NS_ENUM(NSInteger, GIFSize) {
 
 
 @implementation NSGIFRequest
-- (NSURL *)destinationVideo {
-    if(_destinationVideo){
-        return _destinationVideo;
+
+- (instancetype)initWithSourceVideo:(NSURL *)fileURL {
+    self = [super init];
+    if (self) {
+        self.framesPerSecond = 4;
+        self.delayTime = 0.13f;
+        self.sourceVideoFile = fileURL;
     }
-    NSAssert(self.sourceVideo, @"URL of a source video required if didn't provide destination url.");
+    return self;
+}
+
++ (instancetype)requestWithSourceVideo:(NSURL *)fileURL {
+    return [[self alloc] initWithSourceVideo:fileURL];
+}
+
++ (instancetype)requestWithSourceVideo:(NSURL *)fileURL destination:(NSURL *)videoFileURL {
+    NSGIFRequest * request = [[self alloc] initWithSourceVideo:fileURL];
+    request.destinationVideoFile = videoFileURL;
+    return request;
+}
+
++ (instancetype)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL {
+    NSGIFRequest * request = [[NSGIFRequest alloc] initWithSourceVideo:fileURL];
+    request.maxVideoLength = 3;
+    return request;
+}
+
+- (NSURL *)destinationVideoFile {
+    if(_destinationVideoFile){
+        return _destinationVideoFile;
+    }
+    NSAssert(self.sourceVideoFile, @"URL of a source video required if didn't provide destination url.");
     NSString *temporaryFile = [NSTemporaryDirectory() stringByAppendingString:defaultStaticFileName];
     return [NSURL fileURLWithPath:temporaryFile];
 }
 
 - (void)assert{
-    NSParameterAssert(self.sourceVideo);
+    NSParameterAssert(self.sourceVideoFile);
     NSAssert(self.framesPerSecond>0, @"framesPerSecond must be higer than 0.");
 }
-
-+ (NSGIFRequest *__nonnull)requestForOptimizedDefaults:(NSURL *__nullable)urlForSourceVideo
-                                           destination:(NSURL *__nullable)videoFileURL {
-
-    NSGIFRequest * request = [[NSGIFRequest alloc] init];
-    request.sourceVideo = urlForSourceVideo;
-    request.destinationVideo = videoFileURL;
-    request.delayTime = 0.13f;
-    request.framesPerSecond = 4;
-    return request;
-}
-
-+ (NSGIFRequest *__nonnull)requestForLivePhoto:(NSURL *__nullable)urlForSourceVideo
-                                   destination:(NSURL *__nullable)videoFileURL {
-
-    NSGIFRequest * request = [self requestForOptimizedDefaults:urlForSourceVideo destination:videoFileURL];
-    request.maxVideoLength = 3;
-    return request;
-}
-
 @end
 
 @implementation NSGIF
@@ -66,7 +73,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     NSDictionary *fileProperties = [self filePropertiesWithLoopCount:request.loopCount];
     NSDictionary *frameProperties = [self framePropertiesWithDelayTime:request.delayTime];
 
-    AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideo];
+    AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideoFile];
 
     CGFloat videoWidth = [[asset tracksWithMediaType:AVMediaTypeVideo][0] naturalSize].width;
     CGFloat videoHeight = [[asset tracksWithMediaType:AVMediaTypeVideo][0] naturalSize].height;
@@ -103,7 +110,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     __block NSURL *gifURL;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
-        gifURL = [self createGIFforTimePoints:timePoints fromURL:request.sourceVideo toURL:request.destinationVideo fileProperties:fileProperties frameProperties:frameProperties frameCount:frameCount gifSize:optimalSize];
+        gifURL = [self createGIFforTimePoints:timePoints fromURL:request.sourceVideoFile toURL:request.destinationVideoFile fileProperties:fileProperties frameProperties:frameProperties frameCount:frameCount gifSize:optimalSize];
 
         dispatch_group_leave(gifQueue);
     });
@@ -121,7 +128,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     NSDictionary *fileProperties = [self filePropertiesWithLoopCount:request.loopCount];
     NSDictionary *frameProperties = [self framePropertiesWithDelayTime:request.delayTime];
 
-    AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideo];
+    AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideoFile];
 
     // Get the length of the video in seconds
     CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
@@ -144,7 +151,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     __block NSURL *gifURL;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
-        gifURL = [self createGIFforTimePoints:timePoints fromURL:request.sourceVideo toURL:request.destinationVideo fileProperties:fileProperties frameProperties:frameProperties frameCount:request.frameCount gifSize:GIFSizeMedium];
+        gifURL = [self createGIFforTimePoints:timePoints fromURL:request.sourceVideoFile toURL:request.destinationVideoFile fileProperties:fileProperties frameProperties:frameProperties frameCount:request.frameCount gifSize:GIFSizeMedium];
 
         dispatch_group_leave(gifQueue);
     });
