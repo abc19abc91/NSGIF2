@@ -35,6 +35,36 @@ request.progressHandler = ^(double progress, NSUInteger position, NSUInteger len
 }];
 ```
 
+## Options
+```objective-c
+@interface NSGIFRequest : NSObject
+
+/* required. a file's url of source video */
+@property(nullable, nonatomic) NSURL * sourceVideoFile;
+/* optional. defaults to nil. automatically assign the file name of source video (ex: IMG_0000.MOV -> IMG_0000.gif)  */
+@property(nullable, nonatomic) NSURL * destinationVideoFile;
+/* optional. Defaults to NSGIFScaleOptimize (not set). */
+@property(nonatomic, assign) NSGIFScale scalePreset;
+/* optional. Defaults to 4. number of frames in seconds */
+@property(nonatomic, assign) NSUInteger framesPerSecond;
+/* optional. Defaults is to not set. How far along the video track we want to move, in seconds. It will automatically assign from duration of video and framesPerSecond  */
+@property(nonatomic, assign) NSUInteger frameCount;
+/* optional. Defaults to 0, the number of times the GIF will repeat. which means repeat infinitely. */
+@property(nonatomic, assign) NSUInteger loopCount;
+/* optional. Defaults to 0.13. unit is 10ms, 1/100s, the amount of time for each frame in the GIF */
+@property(nonatomic, assign) CGFloat delayTime;
+/* optional. Defaults is to not set. unit is seconds, which means unlimited */
+@property(nonatomic, assign) NSTimeInterval maxDuration;
+/* optional. Defaults is nil */
+@property (nonatomic, copy, nullable) NSGIFProgressHandler progressHandler;
+
+- (NSGIFRequest * __nonnull)initWithSourceVideo:(NSURL * __nullable)fileURL;
++ (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL;
++ (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL destination:(NSURL * __nullable)videoFileURL;
++ (NSGIFRequest * __nonnull)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL;
+@end
+```
+
 Pull requests are more than welcomed!
 
 ## License
