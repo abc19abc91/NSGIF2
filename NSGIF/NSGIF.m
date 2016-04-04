@@ -7,7 +7,7 @@
 #import "NSGIF.h"
 
 // Declare constants
-#define defaultStaticFileName     @"NSGIF.gif"
+#define prefix     @"NSGIF"
 #define timeInterval @(600)
 #define tolerance    @(0.01)
 
@@ -53,8 +53,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
         return _destinationVideoFile;
     }
     NSAssert(self.sourceVideoFile, @"URL of a source video required if didn't provide destination url.");
-    NSString *temporaryFile = [NSTemporaryDirectory() stringByAppendingString:defaultStaticFileName];
-    return [NSURL fileURLWithPath:temporaryFile];
+    return [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[prefix stringByAppendingPathExtension:@"gif"]]];
 }
 
 - (void)assert{
