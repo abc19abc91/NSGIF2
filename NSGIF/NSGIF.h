@@ -27,6 +27,8 @@ typedef NS_ENUM(NSInteger, NSGIFScale) {
     NSGIFScaleOriginal
 };
 
+typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInteger length, CMTime time, BOOL *__nullable stop, NSDictionary *__nullable frameProperties);
+
 @interface NSGIFRequest : NSObject
 
 /* required. a file's url of source video */
@@ -45,6 +47,8 @@ typedef NS_ENUM(NSInteger, NSGIFScale) {
 @property(nonatomic, assign) CGFloat delayTime;
 /* optional. Defaults is to not set. unit is seconds, which means unlimited */
 @property(nonatomic, assign) NSTimeInterval maxDuration;
+/* optional. Defaults is nil */
+@property (nonatomic, copy, nullable) NSGIFProgressHandler progressHandler;
 
 - (NSGIFRequest * __nonnull)initWithSourceVideo:(NSURL * __nullable)fileURL;
 + (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL;

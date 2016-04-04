@@ -165,7 +165,8 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
                                fileProperties:fileProperties
                               frameProperties:frameProperties
                                    frameCount:frameCount
-                                  outputScale:outputScale];
+                                  outputScale:outputScale
+                                     progress:request.progressHandler];
 
         dispatch_group_leave(gifQueue);
     });
@@ -186,7 +187,8 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
                    fileProperties:(NSDictionary *)fileProperties
                   frameProperties:(NSDictionary *)frameProperties
                        frameCount:(NSUInteger)frameCount
-                      outputScale:(CGFloat)outputScale{
+                      outputScale:(CGFloat)outputScale
+                         progress:(NSGIFProgressHandler)handler{
 
     NSParameterAssert(timePoints);
     NSParameterAssert(url);
@@ -206,6 +208,8 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     
     NSError *error = nil;
     CGImageRef previousImageRefCopy = nil;
+    NSUInteger lengthOfTimePoints = timePoints.count;
+    BOOL stop = NO;
     for (NSValue *time in timePoints) {
         CGImageRef imageRef;
         
@@ -219,6 +223,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
             imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
         #endif
         
+        NSAssert(!error, @"Error copying image to create gif");
         if (error) {
             NSLog(@"Error copying image: %@", error);
         }
@@ -233,7 +238,11 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
         }
         CGImageDestinationAddImage(destination, imageRef, (__bridge CFDictionaryRef)frameProperties);
         CGImageRelease(imageRef);
-        NSLog(@"%@ %d, %d",time, [timePoints indexOfObject:time], timePoints.count);
+        NSUInteger position = [timePoints indexOfObject:time]+1;
+        !handler?:handler((CGFloat)position/lengthOfTimePoints,position, lengthOfTimePoints, [time CMTimeValue], &stop, frameProperties);
+        if(stop){
+            break;
+        }
     }
     CGImageRelease(previousImageRefCopy);
     
