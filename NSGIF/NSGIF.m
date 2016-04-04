@@ -212,13 +212,13 @@ typedef NS_ENUM(NSInteger, GIFSize) {
             NSLog(@"Error copying image and no previous frames to duplicate");
             return nil;
         }
-        CGImageDestinationAddImage(destination, imageRef, (CFDictionaryRef)frameProperties);
+        CGImageDestinationAddImage(destination, imageRef, (__bridge CFDictionaryRef)frameProperties);
         CGImageRelease(imageRef);
         NSLog(@"%@ %d, %d",time, [timePoints indexOfObject:time], timePoints.count);
     }
     CGImageRelease(previousImageRefCopy);
     
-    CGImageDestinationSetProperties(destination, (CFDictionaryRef)fileProperties);
+    CGImageDestinationSetProperties(destination, (__bridge CFDictionaryRef)fileProperties);
     // Finalize the GIF
     if (!CGImageDestinationFinalize(destination)) {
         NSLog(@"Failed to finalize GIF destination: %@", error);
