@@ -44,7 +44,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
 
 + (instancetype)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL {
     NSGIFRequest * request = [[NSGIFRequest alloc] initWithSourceVideo:fileURL];
-    request.maxVideoLength = 3;
+    request.maxDuration = 3;
     return request;
 }
 
@@ -90,7 +90,13 @@ typedef NS_ENUM(NSInteger, GIFSize) {
 
     // Get the length of the video in seconds
     CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
+
+    // Clip videoLength via given max duration
+    videoLength = (CGFloat)MIN(request.maxDuration, videoLength);
+
+    // Automatically calc frame count
     NSUInteger frameCount = (NSUInteger) (videoLength * request.framesPerSecond);
+    //request.frameCount
 
     // How far along the video track we want to move, in seconds.
     CGFloat increment = (CGFloat)videoLength/frameCount;
@@ -132,6 +138,9 @@ typedef NS_ENUM(NSInteger, GIFSize) {
 
     // Get the length of the video in seconds
     CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
+
+    // Clip videoLength via given max duration
+    videoLength = (CGFloat)MIN(request.maxDuration, videoLength);
 
     // How far along the video track we want to move, in seconds.
     CGFloat increment = (CGFloat)videoLength/request.frameCount;

@@ -33,7 +33,7 @@
 /* optional. unit is 10ms, 1/100s, the amount of time for each frame in the GIF */
 @property(nonatomic, assign) CGFloat delayTime;
 /* optional. defaults to 0, unit is seconds, which means unlimited */
-@property(nonatomic, assign) NSTimeInterval maxVideoLength;
+@property(nonatomic, assign) NSTimeInterval maxDuration;
 
 - (NSGIFRequest * __nonnull)initWithSourceVideo:(NSURL * __nullable)fileURL;
 + (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL;
