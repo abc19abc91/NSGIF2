@@ -29,8 +29,13 @@
         self.button1.enabled = NO;
         self.button2.enabled = NO;
         
-        [NSGIF optimalGIFfromURL:url loopCount:0 completion:^(NSURL *GifURL) {
-            
+        
+        NSGIFRequest * request = [NSGIFRequest requestWithSourceVideo:url];
+        request.progressHandler = ^(double progress, NSUInteger position, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
+            NSLog(@"%f - %lu - %lu - %lld - %@", progress, position, length, time.value, frameProperties);
+        };
+        
+        [NSGIF create:request completion:^(NSURL * GifURL) {
             NSLog(@"Finished generating GIF: %@", GifURL);
             
             [self.activityIndicator stopAnimating];
@@ -67,8 +72,8 @@
     self.button2.enabled = NO;
     
     NSURL *videoURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"video" ofType:@"mp4"]];
-    [NSGIF optimalGIFfromURL:videoURL loopCount:0 completion:^(NSURL *GifURL) {
-        
+    
+    [NSGIF create:[NSGIFRequest requestWithSourceVideo:videoURL] completion:^(NSURL * GifURL) {
         NSLog(@"Finished generating GIF: %@", GifURL);
         
         [self.activityIndicator stopAnimating];

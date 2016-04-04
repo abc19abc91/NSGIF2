@@ -262,7 +262,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 
 #pragma mark - Properties
 
-+ (NSDictionary *)filePropertiesWithLoopCount:(int)loopCount {
++ (NSDictionary *)filePropertiesWithLoopCount:(NSUInteger)loopCount {
     return @{(NSString *)kCGImagePropertyGIFDictionary:
                 @{(NSString *)kCGImagePropertyGIFLoopCount: @(loopCount)}
              };
