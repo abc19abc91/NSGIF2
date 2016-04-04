@@ -123,6 +123,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
         // Return GIF URL
         completionBlock(gifURL);
+        gifURL = nil;
     });
 }
 
