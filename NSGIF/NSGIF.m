@@ -11,14 +11,65 @@
 #define timeInterval @(600)
 #define tolerance    @(0.01)
 
-typedef NS_ENUM(NSInteger, GIFSize) {
-    GIFSizeVeryLow  = 2,
-    GIFSizeLow      = 3,
-    GIFSizeMedium   = 5,
-    GIFSizeHigh     = 7,
-    GIFSizeOriginal = 10
-};
+CG_INLINE CGFloat
+NSGIFScaleRatio(NSGIFScale scalePhase, CGSize sourceSize)
+{
+    switch (scalePhase){
+        case NSGIFScaleVeryLow:
+            return .2f;
+        case NSGIFScaleLow:
+            return .3f;
+        case NSGIFScaleMedium:
+            return .5f;
+        case NSGIFScaleHigh:
+            return .7f;
+        case NSGIFScaleOriginal:
+            return 1;
+        default:{
+            NSGIFScale targetScalePhase = NSGIFScaleMedium;
+            if (sourceSize.width >= 1200 || sourceSize.height >= 1200)
+                targetScalePhase = NSGIFScaleVeryLow;
+            else if (sourceSize.width >= 800 || sourceSize.height >= 800)
+                targetScalePhase = NSGIFScaleLow;
+            else if (sourceSize.width >= 400 || sourceSize.height >= 400)
+                targetScalePhase = NSGIFScaleMedium;
+            else if (sourceSize.width < 400|| sourceSize.height < 400)
+                targetScalePhase = NSGIFScaleHigh;
+            return NSGIFScaleRatio(targetScalePhase, sourceSize);
+        }
+    }
+}
 
+CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
+
+    #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
+    CGSize newSize = CGSizeMake(CGImageGetWidth(imageRef)*scale, CGImageGetHeight(imageRef)*scale);
+    CGRect newRect = CGRectIntegral(CGRectMake(0, 0, newSize.width, newSize.height));
+
+    UIGraphicsBeginImageContextWithOptions(newSize, NO, 0);
+    CGContextRef context = UIGraphicsGetCurrentContext();
+    if (!context) {
+        return nil;
+    }
+
+    // Set the quality level to use when rescaling
+    CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
+    CGAffineTransform flipVertical = CGAffineTransformMake(1, 0, 0, -1, 0, newSize.height);
+
+    CGContextConcatCTM(context, flipVertical);
+    // Draw into the context; this scales the image
+    CGContextDrawImage(context, newRect, imageRef);
+
+    //Release old image
+    CFRelease(imageRef);
+    // Get the resized image from the context and a UIImage
+    imageRef = CGBitmapContextCreateImage(context);
+
+    UIGraphicsEndImageContext();
+    #endif
+
+    return imageRef;
+}
 
 @implementation NSGIFRequest
 
@@ -65,7 +116,7 @@ typedef NS_ENUM(NSInteger, GIFSize) {
 @implementation NSGIF
 
 #pragma mark - Public methods
-+ (void)optimalGIFfromURL:(NSGIFRequest *)request completion:(void (^)(NSURL *))completionBlock {
++ (void)create:(NSGIFRequest *__nullable)request completion:(void (^ __nullable)(NSURL *__nullable))completionBlock {
     [request assert];
 
     // Create properties dictionaries
@@ -73,29 +124,22 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     NSDictionary *frameProperties = [self framePropertiesWithDelayTime:request.delayTime];
 
     AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideoFile];
+    NSArray * assetTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
+    NSAssert(assetTracks.count,@"Not found any AVMediaTypeVideo in AVURLAsset which fetched from given sourceVideo file url");
 
-    CGFloat videoWidth = [[asset tracksWithMediaType:AVMediaTypeVideo][0] naturalSize].width;
-    CGFloat videoHeight = [[asset tracksWithMediaType:AVMediaTypeVideo][0] naturalSize].height;
-
-    GIFSize optimalSize = GIFSizeMedium;
-    if (videoWidth >= 1200 || videoHeight >= 1200)
-        optimalSize = GIFSizeVeryLow;
-    else if (videoWidth >= 800 || videoHeight >= 800)
-        optimalSize = GIFSizeLow;
-    else if (videoWidth >= 400 || videoHeight >= 400)
-        optimalSize = GIFSizeMedium;
-    else if (videoWidth < 400|| videoHeight < 400)
-        optimalSize = GIFSizeHigh;
+    // set result output scale ratio
+    CGFloat outputScale = NSGIFScaleRatio(request.scalePreset, ((AVAssetTrack *)assetTracks[0]).naturalSize);
 
     // Get the length of the video in seconds
     CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
 
-    // Clip videoLength via given max duration
-    videoLength = (CGFloat)MIN(request.maxDuration, videoLength);
+    // Clip videoLength via given max duration if needed
+    if(request.maxDuration > 0){
+        videoLength = (CGFloat)MIN(request.maxDuration, videoLength);
+    }
 
-    // Automatically calc frame count
-    NSUInteger frameCount = (NSUInteger) (videoLength * request.framesPerSecond);
-    //request.frameCount
+    // Automatically set framecount by given framesPerSecond
+    NSUInteger frameCount = request.frameCount ?: (NSUInteger) (videoLength * request.framesPerSecond);
 
     // How far along the video track we want to move, in seconds.
     CGFloat increment = (CGFloat)videoLength/frameCount;
@@ -115,7 +159,13 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     __block NSURL *gifURL;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
-        gifURL = [self createGIFforTimePoints:timePoints fromURL:request.sourceVideoFile toURL:request.destinationVideoFile fileProperties:fileProperties frameProperties:frameProperties frameCount:frameCount gifSize:optimalSize];
+        gifURL = [self createGIFforTimePoints:timePoints
+                                      fromURL:request.sourceVideoFile
+                                        toURL:request.destinationVideoFile
+                               fileProperties:fileProperties
+                              frameProperties:frameProperties
+                                   frameCount:frameCount
+                                  outputScale:outputScale];
 
         dispatch_group_leave(gifQueue);
     });
@@ -127,53 +177,17 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     });
 }
 
-+ (void)createGIFfromURL:(NSGIFRequest *__nullable)request completion:(void (^ __nullable)(NSURL *__nullable GifURL))completionBlock {
-    [request assert];
-
-    // Create properties dictionaries
-    NSDictionary *fileProperties = [self filePropertiesWithLoopCount:request.loopCount];
-    NSDictionary *frameProperties = [self framePropertiesWithDelayTime:request.delayTime];
-
-    AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideoFile];
-
-    // Get the length of the video in seconds
-    CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
-
-    // Clip videoLength via given max duration
-    videoLength = (CGFloat)MIN(request.maxDuration, videoLength);
-
-    // How far along the video track we want to move, in seconds.
-    CGFloat increment = (CGFloat)videoLength/request.frameCount;
-
-    // Add frames to the buffer
-    NSMutableArray *timePoints = [NSMutableArray array];
-    for (int currentFrame = 0; currentFrame<request.frameCount; ++currentFrame) {
-        CGFloat seconds = (CGFloat)increment * currentFrame;
-        CMTime time = CMTimeMakeWithSeconds(seconds, [timeInterval intValue]);
-        [timePoints addObject:[NSValue valueWithCMTime:time]];
-    }
-
-    // Prepare group for firing completion block
-    dispatch_group_t gifQueue = dispatch_group_create();
-    dispatch_group_enter(gifQueue);
-
-    __block NSURL *gifURL;
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-
-        gifURL = [self createGIFforTimePoints:timePoints fromURL:request.sourceVideoFile toURL:request.destinationVideoFile fileProperties:fileProperties frameProperties:frameProperties frameCount:request.frameCount gifSize:GIFSizeMedium];
-
-        dispatch_group_leave(gifQueue);
-    });
-
-    dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
-        // Return GIF URL
-        completionBlock(gifURL);
-    });
-}
 
 #pragma mark - Base methods
 
-+ (NSURL *)createGIFforTimePoints:(NSArray *)timePoints fromURL:(NSURL *)url toURL:(NSURL *)destFileURL fileProperties:(NSDictionary *)fileProperties frameProperties:(NSDictionary *)frameProperties frameCount:(int)frameCount gifSize:(GIFSize)gifSize{
++ (NSURL *)createGIFforTimePoints:(NSArray *)timePoints
+                          fromURL:(NSURL *)url
+                            toURL:(NSURL *)destFileURL
+                   fileProperties:(NSDictionary *)fileProperties
+                  frameProperties:(NSDictionary *)frameProperties
+                       frameCount:(NSUInteger)frameCount
+                      outputScale:(CGFloat)outputScale{
+
     NSParameterAssert(timePoints);
     NSParameterAssert(url);
     NSParameterAssert(destFileURL);
@@ -196,7 +210,11 @@ typedef NS_ENUM(NSInteger, GIFSize) {
         CGImageRef imageRef;
         
         #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-            imageRef = (CGFloat)gifSize/10 != 1 ? createImageWithScale([generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error], (CGFloat)gifSize/10) : [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
+            if(outputScale==1){
+                imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
+            }else{
+                imageRef = createImageWithScale([generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error], outputScale);
+            }
         #elif TARGET_OS_MAC
             imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
         #endif
@@ -231,39 +249,6 @@ typedef NS_ENUM(NSInteger, GIFSize) {
     CFRelease(destination);
     
     return destFileURL;
-}
-
-#pragma mark - Helpers
-
-CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
-    
-    #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-    CGSize newSize = CGSizeMake(CGImageGetWidth(imageRef)*scale, CGImageGetHeight(imageRef)*scale);
-    CGRect newRect = CGRectIntegral(CGRectMake(0, 0, newSize.width, newSize.height));
-    
-    UIGraphicsBeginImageContextWithOptions(newSize, NO, 0);
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    if (!context) {
-        return nil;
-    }
-    
-    // Set the quality level to use when rescaling
-    CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
-    CGAffineTransform flipVertical = CGAffineTransformMake(1, 0, 0, -1, 0, newSize.height);
-    
-    CGContextConcatCTM(context, flipVertical);
-    // Draw into the context; this scales the image
-    CGContextDrawImage(context, newRect, imageRef);
-    
-    //Release old image
-    CFRelease(imageRef);
-    // Get the resized image from the context and a UIImage
-    imageRef = CGBitmapContextCreateImage(context);
-    
-    UIGraphicsEndImageContext();
-    #endif
-    
-    return imageRef;
 }
 
 #pragma mark - Properties
