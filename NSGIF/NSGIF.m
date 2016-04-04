@@ -71,6 +71,10 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     return imageRef;
 }
 
+@interface NSGIFRequest()
+@property(atomic, assign) BOOL proceeding;
+@end
+
 @implementation NSGIFRequest
 
 - (instancetype)init {
@@ -104,6 +108,10 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     NSGIFRequest * request = [[NSGIFRequest alloc] initWithSourceVideo:fileURL];
     request.maxDuration = 3;
     return request;
+}
+
+- (void)cancelIfNeeded {
+    //TODO: interrupt current proceeding jobs of request.
 }
 
 - (NSURL *)destinationVideoFile {
@@ -164,6 +172,8 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     dispatch_group_enter(gifQueue);
 
     __block NSURL *gifURL;
+
+    request.proceeding = YES;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 
         gifURL = [self createGIFforTimePoints:timePoints
@@ -180,8 +190,10 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 
     dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
         // Return GIF URL
+        request.proceeding = NO;
         completionBlock(gifURL);
         gifURL = nil;
+        request.progressHandler = nil;
     });
 }
 

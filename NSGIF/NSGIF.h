@@ -49,11 +49,14 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
 @property(nonatomic, assign) NSTimeInterval maxDuration;
 /* optional. Defaults is nil */
 @property (nonatomic, copy, nullable) NSGIFProgressHandler progressHandler;
+/* gif creation job is now proceeding */
+@property(atomic, readonly) BOOL proceeding;
 
 - (NSGIFRequest * __nonnull)initWithSourceVideo:(NSURL * __nullable)fileURL;
 + (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL;
 + (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL destination:(NSURL * __nullable)videoFileURL;
 + (NSGIFRequest * __nonnull)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL;
+- (void)cancelIfNeeded;
 @end
 
 @interface NSGIF : NSObject
