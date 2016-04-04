@@ -73,11 +73,18 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 
 @implementation NSGIFRequest
 
-- (instancetype)initWithSourceVideo:(NSURL *)fileURL {
+- (instancetype)init {
     self = [super init];
     if (self) {
         self.framesPerSecond = 4;
         self.delayTime = 0.13f;
+    }
+    return self;
+}
+
+- (instancetype)initWithSourceVideo:(NSURL *)fileURL {
+    self = [self init];
+    if (self) {
         self.sourceVideoFile = fileURL;
     }
     return self;
