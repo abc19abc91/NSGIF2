@@ -106,7 +106,8 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 
 + (instancetype)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL {
     NSGIFRequest * request = [[NSGIFRequest alloc] initWithSourceVideo:fileURL];
-    request.maxDuration = 3;
+    request.delayTime = 0.1f;
+    request.framesPerSecond = 8;
     return request;
 }
 
