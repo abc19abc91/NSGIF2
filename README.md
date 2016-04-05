@@ -2,7 +2,7 @@
 
 This generates a GIF from the provided video file url.
 
-*Please refer this repo has been separated for some improvements. Please do diff each other, and visit [original repo](https://github.com/NSRare/NSGIF) for more information if you need.*
+*This repository has been separated from original repo along with some nontrivial different features, designs, and improvements. Please do diff each other, and visit [original repo](https://github.com/NSRare/NSGIF) for more information if you need.*
 
 ## Installation
 
