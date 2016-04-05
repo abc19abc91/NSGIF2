@@ -74,12 +74,13 @@ request.progressHandler = ^(double progress, NSUInteger position, NSUInteger len
 @end
 ```
 
-## In the future, I will
+## In the future, I will add a feature that can
 
-* Support creating from a provided photo url.
-* Support simultaneous processing with provided specific chunk size.
-* Support start point for seeking
-* Support infinite lengh of GIFs (Split with specific chunk size -> encoding -> merge each encoded piece of gifs.)
+* create from a provided photo url.
+* perform simultaneous processing with provided specific chunk size.
+* seek for specific point.
+* generate infinite lengh of GIFs (Split with specific chunk size -> encoding -> merge each encoded piece of gifs.)
+* use APIs which is pefectly similar with PhotosKit of iOS.
 
 Pull requests are more than welcomed!
 
