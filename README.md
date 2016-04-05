@@ -22,9 +22,10 @@ pod "NSGIF2"
 
 ## Usage
 
+Default request automatically set essential options such as the best frame count, delay time, output temp file name, or size. see interface file for more options.
+
 ### Write 1 line to export
 ```objective-c
-//default request automatically set essential options such as the best frame count, delay time, output temp file name, or size. see interface file for more options.
 [NSGIF create:[NSGIFRequest requestWithSourceVideo:tempVideoFileURL] completion:^(NSURL *GifURL) {
     //GifURL is to nil if it failed or stopped.
 }];
