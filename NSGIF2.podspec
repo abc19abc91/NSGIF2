@@ -7,11 +7,11 @@ Pod::Spec.new do |s|
   #  summary should be tweet-length, and the description more in depth.
   #
 
-  s.name         = "NSGIF"
+  s.name         = "NSGIF2"
   s.version      = "1.3"
-  s.summary      = "iOS Library for converting your videos into beautiful animated GIFs."
-  s.homepage     = "https://github.com/sebyddd/NSGIF"
-  s.screenshots  = "https://dl.dropboxusercontent.com/s/0rq3fr0dtpvwd4h/NSGIF-header.png?dl=0"
+  s.summary      = "Create a GIF from the provided video file url."
+  s.homepage     = "https://github.com/metasmile/NSGIF2"
+  s.screenshots  = "https://raw.githubusercontent.com/metasmile/NSGIF2/master/title.png"
 
 
   # ―――  Spec License  ――――――――――――――――――――――――――――――――――――――――――――――――――――――――――― #
@@ -23,12 +23,12 @@ Pod::Spec.new do |s|
 
   s.license      = "MIT (example)"
   s.license      = { :type => "MIT", :file => "LICENSE" }
-  s.author       = { "Sebastian Dobrincu" => "sebyddd@gmail.com", "Brian Lee" => "your@elie.camera" }
+  s.author       = { "Brian Lee" => "your@elie.camera", "Sebastian Dobrincu (original repo)" => "sebyddd@gmail.com" }
   s.platform     = :ios
   s.platform     = :osx
   s.ios.deployment_target = '7.0'
   s.osx.deployment_target = '10.9'
-  s.source       = { :git => 'https://github.com/metasmile/NSGIF.git', :tag => "#{s.version}" }
+  s.source       = { :git => 'https://github.com/metasmile/NSGIF2.git', :tag => "#{s.version}" }
   s.source_files  = "NSGIF/*.{h,m}"
 
   s.requires_arc = true
