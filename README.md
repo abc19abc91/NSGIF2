@@ -22,7 +22,6 @@ pod "NSGIF2"
 
 ## Usage
 
-### Basic
 ```objective-c
 //default request automatically set the best frame count, delay time or size. see interface file for more options.
 NSGIFRequest * request = [NSGIFRequest requestWithSourceVideo:tempVideoFileURL destination:gifFileURL];
@@ -31,7 +30,7 @@ request.progressHandler = ^(double progress, NSUInteger position, NSUInteger len
 };
 
 [NSGIF create:request completion:^(NSURL *GifURL) {
-    //GifURL is to nil if it failed.
+    //GifURL is to nil if it failed or stopped.
 }];
 ```
 
