@@ -1,6 +1,6 @@
-![NSGIF](https://dl.dropboxusercontent.com/s/0rq3fr0dtpvwd4h/NSGIF-header.png?dl=0)
+![NSGIF2](https://raw.githubusercontent.com/metasmile/NSGIF2/master/title.png)
 
-This generates a GIF from the provided video file url.
+Creates a GIF from the provided video file url.
 
 *This repository has been separated from original repo along with some nontrivial different features, designs, and improvements. Please do diff each other, and visit [original repo](https://github.com/NSRare/NSGIF) for more information if you need.*
 
