@@ -17,8 +17,7 @@ Simply import the 'NSGIF' into your project then import the following in the cla
 ### From CocoaPods
 
 ```ruby
-platform :ios, '7.0'
-pod "NSGIF", "~> 1.0"
+pod "NSGIF2"
 ```
 
 ## Usage
