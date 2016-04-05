@@ -1,6 +1,6 @@
 ![NSGIF2](https://raw.githubusercontent.com/metasmile/NSGIF2/master/title.png?v=2)
 
-Creates a GIF from the provided video file url.
+Create a GIF from the provided video file url.
 
 *This repository has been separated from original repo along with some nontrivial different features, designs, and improvements. Please do diff each other, and visit [original repo](https://github.com/NSRare/NSGIF) for more information if you need.*
 
@@ -22,8 +22,16 @@ pod "NSGIF2"
 
 ## Usage
 
+### Write 1 line to export
 ```objective-c
-//default request automatically set the best frame count, delay time or size. see interface file for more options.
+//default request automatically set essential options such as the best frame count, delay time, output temp file name, or size. see interface file for more options.
+[NSGIF create:[NSGIFRequest requestWithSourceVideo:tempVideoFileURL] completion:^(NSURL *GifURL) {
+    //GifURL is to nil if it failed or stopped.
+}];
+```
+
+### If you need more.
+```objective-c
 NSGIFRequest * request = [NSGIFRequest requestWithSourceVideo:tempVideoFileURL destination:gifFileURL];
 request.progressHandler = ^(double progress, NSUInteger position, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
     NSLog(@"%f - %lu - %lu - %lld - %@", progress, position, length, time.value, frameProperties);
@@ -44,7 +52,7 @@ request.progressHandler = ^(double progress, NSUInteger position, NSUInteger len
 };
 ```
 
-## Options
+## Options 
 ```objective-c
 @interface NSGIFRequest : NSObject
 
