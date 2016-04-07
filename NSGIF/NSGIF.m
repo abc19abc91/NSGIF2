@@ -142,6 +142,10 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideoFile];
     NSArray * assetTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
     NSAssert(assetTracks.count,@"Not found any AVMediaTypeVideo in AVURLAsset which fetched from given sourceVideo file url");
+    //early return if asset is nil or not found video.
+    if(!assetTracks.count){
+        !completionBlock?:completionBlock(nil);
+    }
 
     // set result output scale ratio
     CGFloat outputScale = NSGIFScaleRatio(request.scalePreset, ((AVAssetTrack *)assetTracks[0]).naturalSize);
