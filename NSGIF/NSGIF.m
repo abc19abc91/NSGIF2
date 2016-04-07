@@ -145,6 +145,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     //early return if asset is nil or not found video.
     if(!assetTracks.count){
         !completionBlock?:completionBlock(nil);
+        return;
     }
 
     // set result output scale ratio
