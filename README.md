@@ -1,3 +1,5 @@
+[AD] Live Focus - Shoot First, Focus Later. Totally innovative way to take a picture in mobile. : https://postfoc.us/
+
 ![NSGIF2](https://raw.githubusercontent.com/metasmile/NSGIF2/master/title.png?v=2)
 
 Create a GIF from the provided video file url.
