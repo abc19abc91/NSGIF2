@@ -29,21 +29,20 @@ typedef NS_ENUM(NSInteger, NSGIFScale) {
 
 typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInteger length, CMTime time, BOOL *__nullable stop, NSDictionary *__nullable frameProperties);
 
-@interface NSGIFRequest : NSObject
-
+#pragma mark NSSerializedAssetRequest
+@interface NSSerializedResourceRequest : NSObject
 /* required.
  * a file's url of source video */
 @property(nullable, nonatomic) NSURL * sourceVideoFile;
-
-/* optional.
- * defaults to nil.
- * automatically assign the file name of source video (ex: IMG_0000.MOV -> IMG_0000.gif)  */
-@property(nullable, nonatomic) NSURL * destinationVideoFile;
 
 /* optional but important.
  * Defaults to NSGIFScaleOptimize (not set).
  * This option will affect gif file size, memory usage and processing speed. */
 @property(nonatomic, assign) NSGIFScale scalePreset;
+
+/* optional.
+ * Defaults is to not set. unit is seconds, which means unlimited */
+@property(nonatomic, assign) NSTimeInterval maxDuration;
 
 /* optional but important.
  * Defaults to 4.
@@ -57,6 +56,27 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
 @property(nonatomic, assign) NSUInteger frameCount;
 
 /* optional.
+ * Defaults is nil */
+@property (nonatomic, copy, nullable) NSGIFProgressHandler progressHandler;
+
+/* readonly
+ * status for gif creating job 'YES' equals to 'now proceeding'
+ */
+@property(atomic, readonly) BOOL proceeding;
+
+- (instancetype __nonnull)initWithSourceVideo:(NSURL * __nullable)fileURL;
++ (instancetype __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL;
+@end
+
+#pragma mark NSGIFRequest
+@interface NSGIFRequest : NSSerializedResourceRequest
+
+/* optional.
+ * defaults to nil.
+ * automatically assign the file name of source video (ex: IMG_0000.MOV -> IMG_0000.gif)  */
+@property(nullable, nonatomic) NSURL * destinationVideoFile;
+
+/* optional.
  * Defaults to 0,
  * the number of times the GIF will repeat. which means repeat infinitely. */
 @property(nonatomic, assign) NSUInteger loopCount;
@@ -67,24 +87,27 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
  * This option will NOT affect gif file size, memory usage and processing speed. It affect only FPS. */
 @property(nonatomic, assign) CGFloat delayTime;
 
-/* optional.
- * Defaults is to not set. unit is seconds, which means unlimited */
-@property(nonatomic, assign) NSTimeInterval maxDuration;
-
-/* optional.
- * Defaults is nil */
-@property (nonatomic, copy, nullable) NSGIFProgressHandler progressHandler;
-
-/* gif creation job is now proceeding */
-@property(atomic, readonly) BOOL proceeding;
-
-- (NSGIFRequest * __nonnull)initWithSourceVideo:(NSURL * __nullable)fileURL;
-+ (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL;
 + (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL destination:(NSURL * __nullable)videoFileURL;
 + (NSGIFRequest * __nonnull)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL;
+@end
+
+#pragma mark NSExtractFramesRequest
+@interface NSFrameExtractingFromVideoRequest : NSSerializedResourceRequest
+/* optional.
+ * Defaults to jpg.
+ * This property will be affect to UTType(Automatically detected) of extracting image file.
+ */
+@property(nonatomic, readwrite, nullable) NSString * extension;
+
+/* optional.
+ * defaults to temp directory.
+ */
+@property(nullable, nonatomic) NSURL * destinationDirectory;
 @end
 
 @interface NSGIF : NSObject
 
 + (void)create:(NSGIFRequest *__nullable)request completion:(void (^ __nullable)(NSURL * __nullable))completionBlock;
+
++ (void)extract:(NSFrameExtractingFromVideoRequest *__nullable)request completion:(void (^ __nullable)(NSArray<NSURL *> * __nullable))completionBlock;
 @end

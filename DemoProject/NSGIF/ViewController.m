@@ -28,8 +28,8 @@
         [self.activityIndicator startAnimating];
         self.button1.enabled = NO;
         self.button2.enabled = NO;
-        
-        
+        self.button3.enabled = NO;
+
         NSGIFRequest * request = [NSGIFRequest requestWithSourceVideo:url];
         request.progressHandler = ^(double progress, NSUInteger position, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
             NSLog(@"%f - %lu - %lu - %lld - %@", progress, position, length, time.value, frameProperties);
@@ -42,6 +42,7 @@
             [UIView animateWithDuration:0.3 animations:^{
                 self.button1.alpha = 0.0f;
                 self.button2.alpha = 0.0f;
+                self.button3.alpha = 0.0f;
                 self.webView.alpha = 1.0f;
             }];
             [self.webView loadRequest:[NSURLRequest requestWithURL:GifURL]];
@@ -70,6 +71,7 @@
     [self.activityIndicator startAnimating];
     self.button1.enabled = NO;
     self.button2.enabled = NO;
+    self.button3.enabled = NO;
     
     NSURL *videoURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"video" ofType:@"mp4"]];
     
@@ -80,6 +82,7 @@
         [UIView animateWithDuration:0.3 animations:^{
             self.button1.alpha = 0.0f;
             self.button2.alpha = 0.0f;
+            self.button3.alpha = 0.0f;
             self.webView.alpha = 1.0f;
         }];
         [self.webView loadRequest:[NSURLRequest requestWithURL:GifURL]];
@@ -105,6 +108,45 @@
         // Present the picker
         [self presentViewController:picker animated:YES completion:nil];
     });
+}
+
+- (IBAction)button3Tapped:(id)sender {
+
+    [self.activityIndicator startAnimating];
+    self.button1.enabled = NO;
+    self.button2.enabled = NO;
+    self.button3.enabled = NO;
+
+    NSURL *videoURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"video" ofType:@"mp4"]];
+
+    UIScrollView * scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
+
+    NSFrameExtractingFromVideoRequest * request = [NSFrameExtractingFromVideoRequest requestWithSourceVideo:videoURL];
+    request.progressHandler = ^(double progress, NSUInteger offset, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
+        NSLog(@"Progress: %@, %@, %@", [@(progress) stringValue], [@(offset) stringValue], [@(time.value) stringValue]);
+    };
+    request.frameCount = 10;
+
+    [NSGIF extract:request completion:^(NSArray<NSURL *> *extractedFrameImageUrls) {
+        NSLog(@"Finished generating frames: %@", extractedFrameImageUrls);
+
+        [self.activityIndicator stopAnimating];
+        [UIView animateWithDuration:0.3 animations:^{
+            self.button1.alpha = 0.0f;
+            self.button2.alpha = 0.0f;
+            self.button3.alpha = 0.0f;
+            self.webView.alpha = 1.0f;
+        }];
+
+        for(NSURL * imageUrl in extractedFrameImageUrls){
+            UIView * imageView = [[UIImageView alloc] initWithImage:[UIImage imageWithContentsOfFile:imageUrl.path]];
+            imageView.contentMode = UIViewContentModeScaleAspectFit;
+            imageView.frame = CGRectMake(0,((CGFloat)[extractedFrameImageUrls indexOfObject:imageUrl])*30, 30,30);
+            [scrollView addSubview:imageView];
+        }
+    }];
+
+    [self.view addSubview:scrollView];
 }
 
 @end

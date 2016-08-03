@@ -42,7 +42,7 @@ NSGIFScaleRatio(NSGIFScale scalePhase, CGSize sourceSize)
 
 CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 
-    #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
+#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
     CGSize newSize = CGSizeMake(CGImageGetWidth(imageRef)*scale, CGImageGetHeight(imageRef)*scale);
     CGRect newRect = CGRectIntegral(CGRectMake(0, 0, newSize.width, newSize.height));
 
@@ -66,29 +66,22 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     imageRef = CGBitmapContextCreateImage(context);
 
     UIGraphicsEndImageContext();
-    #endif
+#endif
 
     return imageRef;
 }
 
-@interface NSGIFRequest()
+#pragma mark - NSSerializedAssetRequest
+@interface NSSerializedResourceRequest()
 @property(atomic, assign) BOOL proceeding;
 @end
 
-@implementation NSGIFRequest
-
-- (instancetype)init {
-    self = [super init];
-    if (self) {
-        self.framesPerSecond = 4;
-        self.delayTime = 0.13f;
-    }
-    return self;
-}
+@implementation NSSerializedResourceRequest : NSObject
 
 - (instancetype)initWithSourceVideo:(NSURL *)fileURL {
     self = [self init];
     if (self) {
+        self.framesPerSecond = 4;
         self.sourceVideoFile = fileURL;
     }
     return self;
@@ -96,6 +89,23 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 
 + (instancetype)requestWithSourceVideo:(NSURL *)fileURL {
     return [[self alloc] initWithSourceVideo:fileURL];
+}
+
+- (void)assert{
+    NSParameterAssert(self.sourceVideoFile);
+    NSAssert(self.framesPerSecond>0, @"framesPerSecond must be higer than 0.");
+}
+@end
+
+#pragma mark - NSGIFRequest
+@implementation NSGIFRequest
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        self.delayTime = 0.13f;
+    }
+    return self;
 }
 
 + (instancetype)requestWithSourceVideo:(NSURL *)fileURL destination:(NSURL *)videoFileURL {
@@ -123,9 +133,18 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     return [NSURL fileURLWithPath:[NSTemporaryDirectory() stringByAppendingPathComponent:[prefix stringByAppendingPathExtension:@"gif"]]];
 }
 
-- (void)assert{
-    NSParameterAssert(self.sourceVideoFile);
-    NSAssert(self.framesPerSecond>0, @"framesPerSecond must be higer than 0.");
+@end
+
+#pragma mark - NSExtractFramesRequest
+@implementation NSFrameExtractingFromVideoRequest
+
+- (instancetype)init {
+    self = [super init];
+    if (self) {
+        _extension = @"jpg";
+        _destinationDirectory = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
+    }
+    return self;
 }
 @end
 
@@ -136,8 +155,17 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     [request assert];
 
     // Create properties dictionaries
-    NSDictionary *fileProperties = [self filePropertiesWithLoopCount:request.loopCount];
-    NSDictionary *frameProperties = [self framePropertiesWithDelayTime:request.delayTime];
+    NSDictionary *fileProperties = @{
+            (NSString *)kCGImagePropertyGIFDictionary: @{
+                    (NSString *)kCGImagePropertyGIFLoopCount: @(request.loopCount)
+            }
+    };
+    NSDictionary *frameProperties = @{
+            (NSString *)kCGImagePropertyGIFDictionary: @{
+                    (NSString *)kCGImagePropertyGIFDelayTime: @(request.delayTime)
+            },
+            (NSString *)kCGImagePropertyColorModel: (NSString *)kCGImagePropertyColorModelRGB
+    };
 
     AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideoFile];
     NSArray * assetTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
@@ -203,7 +231,6 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     });
 }
 
-
 #pragma mark - Base methods
 
 + (NSURL *)createGIFforTimePoints:(NSArray *)timePoints
@@ -226,28 +253,28 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     AVURLAsset *asset = [AVURLAsset URLAssetWithURL:url options:nil];
     AVAssetImageGenerator *generator = [AVAssetImageGenerator assetImageGeneratorWithAsset:asset];
     generator.appliesPreferredTrackTransform = YES;
-    
+
     CMTime tol = CMTimeMakeWithSeconds([tolerance floatValue], [timeInterval intValue]);
     generator.requestedTimeToleranceBefore = tol;
     generator.requestedTimeToleranceAfter = tol;
-    
+
     NSError *error = nil;
     CGImageRef previousImageRefCopy = nil;
     NSUInteger lengthOfTimePoints = timePoints.count;
     BOOL stop = NO;
     for (NSValue *time in timePoints) {
         CGImageRef imageRef;
-        
-        #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-            if(outputScale==1){
+
+#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
+        if(outputScale==1){
                 imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
             }else{
                 imageRef = createImageWithScale([generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error], outputScale);
             }
-        #elif TARGET_OS_MAC
-            imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
-        #endif
-        
+#elif TARGET_OS_MAC
+        imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
+#endif
+
         NSAssert(!error, @"Error copying image to create gif");
         if (error) {
             NSLog(@"Error copying image: %@", error);
@@ -270,7 +297,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
         }
     }
     CGImageRelease(previousImageRefCopy);
-    
+
     CGImageDestinationSetProperties(destination, (__bridge CFDictionaryRef)fileProperties);
     // Finalize the GIF
     if (!CGImageDestinationFinalize(destination)) {
@@ -281,23 +308,162 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
         return nil;
     }
     CFRelease(destination);
-    
+
     return destFileURL;
 }
 
-#pragma mark - Properties
 
-+ (NSDictionary *)filePropertiesWithLoopCount:(NSUInteger)loopCount {
-    return @{(NSString *)kCGImagePropertyGIFDictionary:
-                @{(NSString *)kCGImagePropertyGIFLoopCount: @(loopCount)}
-             };
+#pragma mark Frame Extracter
+
++ (void)extract:(NSFrameExtractingFromVideoRequest *__nullable)request completion:(void (^ __nullable)(NSArray<NSURL *> *__nullable))completionBlock {
+    [request assert];
+
+    // Create properties dictionaries
+    AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideoFile];
+    NSArray * assetTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
+    NSAssert(assetTracks.count,@"Not found any AVMediaTypeVideo in AVURLAsset which fetched from given sourceVideo file url");
+    //early return if asset is nil or not found video.
+    if(!assetTracks.count){
+        !completionBlock?:completionBlock(nil);
+        return;
+    }
+
+    // set result output scale ratio
+    CGFloat outputScale = NSGIFScaleRatio(request.scalePreset, ((AVAssetTrack *)assetTracks[0]).naturalSize);
+
+    // Get the length of the video in seconds
+    CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
+
+    // Clip videoLength via given max duration if needed
+    if(request.maxDuration > 0){
+        videoLength = (CGFloat)MIN(request.maxDuration, videoLength);
+    }
+
+    // Automatically set framecount by given framesPerSecond
+    NSUInteger frameCount = request.frameCount ?: (NSUInteger) (videoLength * request.framesPerSecond);
+
+    // How far along the video track we want to move, in seconds.
+    CGFloat increment = (CGFloat)videoLength/frameCount;
+
+    // Add frames to the buffer
+    NSMutableArray *timePoints = [NSMutableArray array];
+    for (int currentFrame = 0; currentFrame<frameCount; ++currentFrame) {
+        CGFloat seconds = (CGFloat)increment * currentFrame;
+        CMTime time = CMTimeMakeWithSeconds(seconds, [timeInterval intValue]);
+        [timePoints addObject:[NSValue valueWithCMTime:time]];
+    }
+
+    // Prepare group for firing completion block
+    dispatch_group_t gifQueue = dispatch_group_create();
+    dispatch_group_enter(gifQueue);
+
+    __block NSArray<NSURL *> *extractImageUrls;
+
+    request.proceeding = YES;
+
+    typeof(self) __weak weakSelf = self;
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        extractImageUrls = [weakSelf extractFramesforTimePoints:timePoints
+                                                      extension:request.extension
+                                                        fromURL:request.sourceVideoFile
+                                                          toURL:request.destinationDirectory
+                                                 fileProperties:nil
+                                                    outputScale:outputScale
+                                                       progress:request.progressHandler];
+
+        dispatch_group_leave(gifQueue);
+    });
+
+    dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
+        // Return GIF URL
+        request.proceeding = NO;
+        completionBlock(extractImageUrls);
+        extractImageUrls = nil;
+        request.progressHandler = nil;
+    });
 }
 
-+ (NSDictionary *)framePropertiesWithDelayTime:(CGFloat)delayTime {
++ (NSArray<NSURL *> *)extractFramesforTimePoints:(NSArray * const)timePoints
+                                       extension:(NSString * const)extension
+                                         fromURL:(NSURL * const)url
+                                           toURL:(NSURL * const)destDir
+                                  fileProperties:(NSDictionary * const)fileProperties
+                                     outputScale:(CGFloat const)outputScale
+                                        progress:(NSGIFProgressHandler const)handler{
 
-    return @{(NSString *)kCGImagePropertyGIFDictionary:
-                @{(NSString *)kCGImagePropertyGIFDelayTime: @(delayTime)},
-                (NSString *)kCGImagePropertyColorModel:(NSString *)kCGImagePropertyColorModelRGB
-            };
+    NSParameterAssert(timePoints);
+    NSParameterAssert(url);
+    NSParameterAssert([[NSFileManager defaultManager] fileExistsAtPath:url.path isDirectory:NO]);
+    NSParameterAssert(destDir);
+
+    NSMutableArray<NSURL *> * resultFrameImagesUrls = [NSMutableArray<NSURL *> array];
+
+    AVURLAsset *asset = [AVURLAsset URLAssetWithURL:url options:nil];
+    AVAssetImageGenerator *generator = [AVAssetImageGenerator assetImageGeneratorWithAsset:asset];
+    generator.appliesPreferredTrackTransform = YES;
+
+    CMTime tol = CMTimeMakeWithSeconds([tolerance floatValue], [timeInterval intValue]);
+    generator.requestedTimeToleranceBefore = tol;
+    generator.requestedTimeToleranceAfter = tol;
+
+    NSError *error = nil;
+    NSUInteger lengthOfTimePoints = timePoints.count;
+    BOOL stop = NO;
+
+    for (NSValue *time in timePoints) {
+        NSUInteger frameIndex = [timePoints indexOfObject:time];
+
+        NSString * filePathComponent = [[[[url lastPathComponent]
+                stringByDeletingPathExtension]
+                stringByAppendingFormat:@"_extracted_frame_%d", (int) frameIndex]
+                stringByAppendingPathExtension:extension];
+
+        CFStringRef UTType = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (__bridge CFStringRef)extension, NULL);
+
+        NSURL * destFileURL = [destDir URLByAppendingPathComponent:filePathComponent isDirectory:NO];
+
+        CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)destFileURL, UTType , 1, NULL);
+
+        CGImageRef imageRef;
+
+#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
+        if(outputScale==1){
+            imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
+        }else{
+            imageRef = createImageWithScale([generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error], outputScale);
+        }
+#elif TARGET_OS_MAC
+        imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
+#endif
+
+        NSAssert(!error, @"Error copying image to create gif");
+        if (error) {
+            NSLog(@"Error copying image: %@", error);
+        }
+        CGImageDestinationAddImage(destination, imageRef, NULL);
+        CGImageRelease(imageRef);
+
+        NSUInteger position = [timePoints indexOfObject:time]+1;
+        !handler?:handler((CGFloat)position/lengthOfTimePoints,position, lengthOfTimePoints, [time CMTimeValue], &stop, nil);
+
+        if(stop){
+            break;
+        }
+
+        CGImageDestinationSetProperties(destination, (__bridge CFDictionaryRef)(fileProperties ?: @{}));
+        // Finalize the GIF
+        if (!CGImageDestinationFinalize(destination)) {
+            NSLog(@"Failed to finalize to destination path: %@", error);
+            if (destination != nil) {
+                CFRelease(destination);
+            }
+            continue;
+        }
+        CFRelease(destination);
+
+        [resultFrameImagesUrls addObject:destFileURL];
+    }
+
+    return resultFrameImagesUrls;
 }
 @end

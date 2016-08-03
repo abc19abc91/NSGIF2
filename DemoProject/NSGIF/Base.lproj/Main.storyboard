@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10116" systemVersion="15E65" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="vXZ-lx-hvc">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10117" systemVersion="15G31" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="vXZ-lx-hvc">
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
@@ -55,6 +55,19 @@
                                     <constraint firstAttribute="width" constant="37" id="kZd-EC-vzQ"/>
                                 </constraints>
                             </activityIndicatorView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="pvU-lT-ktX">
+                                <rect key="frame" x="76" y="417" width="224" height="50"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="50" id="9CC-Sn-T1F"/>
+                                </constraints>
+                                <state key="normal" title="Extract Frames from demo video">
+                                    <color key="titleColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                    <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
+                                </state>
+                                <connections>
+                                    <action selector="button3Tapped:" destination="vXZ-lx-hvc" eventType="touchUpInside" id="6Ui-kW-0Ct"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
@@ -62,9 +75,11 @@
                             <constraint firstItem="Enu-cu-ZuI" firstAttribute="top" secondItem="jyV-Pf-zRb" secondAttribute="bottom" constant="239" id="DJq-wk-22f"/>
                             <constraint firstItem="ggv-an-eqq" firstAttribute="leading" secondItem="kh9-bI-dsS" secondAttribute="leadingMargin" constant="74" id="Ety-XG-Cvw"/>
                             <constraint firstAttribute="centerX" secondItem="1Pe-Wl-Z2T" secondAttribute="centerX" id="Ev1-RI-ztb"/>
+                            <constraint firstItem="pvU-lT-ktX" firstAttribute="top" secondItem="ggv-an-eqq" secondAttribute="bottom" constant="8" symbolic="YES" id="JBi-D7-DLB"/>
                             <constraint firstItem="ggv-an-eqq" firstAttribute="top" secondItem="Enu-cu-ZuI" secondAttribute="bottom" constant="50" id="QAq-Uf-UdI"/>
                             <constraint firstItem="yvE-4j-Onc" firstAttribute="leading" secondItem="kh9-bI-dsS" secondAttribute="leading" id="Xw1-8a-c4o"/>
                             <constraint firstAttribute="centerX" secondItem="Enu-cu-ZuI" secondAttribute="centerX" id="c7g-VQ-j40"/>
+                            <constraint firstItem="pvU-lT-ktX" firstAttribute="centerX" secondItem="ggv-an-eqq" secondAttribute="centerX" id="cE0-z0-euI"/>
                             <constraint firstAttribute="trailingMargin" secondItem="ggv-an-eqq" secondAttribute="trailing" constant="74" id="iE4-Hm-q7G"/>
                             <constraint firstAttribute="centerX" secondItem="ggv-an-eqq" secondAttribute="centerX" id="k3k-V7-0UR"/>
                             <constraint firstItem="Enu-cu-ZuI" firstAttribute="leading" secondItem="kh9-bI-dsS" secondAttribute="leadingMargin" constant="74" id="xAD-ja-hHA"/>
@@ -79,6 +94,7 @@
                         <outlet property="activityIndicator" destination="1Pe-Wl-Z2T" id="Fij-1H-Xka"/>
                         <outlet property="button1" destination="Enu-cu-ZuI" id="aSv-c2-nep"/>
                         <outlet property="button2" destination="ggv-an-eqq" id="gpq-nQ-6cp"/>
+                        <outlet property="button3" destination="pvU-lT-ktX" id="2AD-XJ-PSB"/>
                         <outlet property="webView" destination="yvE-4j-Onc" id="zlr-Ub-Oe9"/>
                     </connections>
                 </viewController>

@@ -23,7 +23,7 @@ Simply import the 'NSGIF' into your project then import the following in the cla
 pod "NSGIF2"
 ```
 
-## Usage
+## Usage - GIF from a video
 
 Default request automatically set essential options such as the best frame count, delay time, output temp file name, or size. see interface file for more options.
 
@@ -56,10 +56,8 @@ request.progressHandler = ^(double progress, NSUInteger position, NSUInteger len
 };
 ```
 
-## Options
+## Options - NSGIFRequest
 ```objective-c
-@interface NSGIFRequest : NSObject
-
 /* required.
  * a file's url of source video */
 @property(nullable, nonatomic) NSURL * sourceVideoFile;
@@ -106,12 +104,67 @@ request.progressHandler = ^(double progress, NSUInteger position, NSUInteger len
 
 /* gif creation job is now proceeding */
 @property(atomic, readonly) BOOL proceeding;
+```
 
-- (NSGIFRequest * __nonnull)initWithSourceVideo:(NSURL * __nullable)fileURL;
-+ (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL;
-+ (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL destination:(NSURL * __nullable)videoFileURL;
-+ (NSGIFRequest * __nonnull)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL;
-@end
+## Usage - Extract each frames from a video to images.
+
+```objective-c
+NSFrameExtractingFromVideoRequest * request = [NSFrameExtractingFromVideoRequest requestWithSourceVideo:videoURL];
+request.progressHandler = ^(double progress, NSUInteger offset, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
+    // normalized progress, Zero to 1.
+};
+request.framesPerSecond = 2;
+
+[NSGIF extract:request completion:^(NSArray<NSURL *> *extractedFrameImageUrls) {
+    //complete.
+}];
+```
+
+## Options - NSFrameExtractingFromVideoRequest
+```objective-c
+/* required.
+ * a file's url of source video */
+@property(nullable, nonatomic) NSURL * sourceVideoFile;
+
+/* optional.
+ * defaults to temp directory.
+ */
+@property(nullable, nonatomic) NSURL * destinationDirectory;
+
+/* optional.
+ * Defaults to jpg.
+ * This property will be affect to UTType(Automatically detected) of extracting image file.
+ */
+@property(nonatomic, readwrite, nullable) NSString * extension;
+
+/* optional but important.
+ * Defaults to NSGIFScaleOptimize (not set).
+ * This option will affect gif file size, memory usage and processing speed. */
+@property(nonatomic, assign) NSGIFScale scalePreset;
+
+/* optional.
+ * Defaults is to not set. unit is seconds, which means unlimited */
+@property(nonatomic, assign) NSTimeInterval maxDuration;
+
+/* optional but important.
+ * Defaults to 4.
+ * number of frames in seconds.
+ * This option will affect gif file size, memory usage and processing speed. */
+@property(nonatomic, assign) NSUInteger framesPerSecond;
+
+/* optional but defaults is recommended.
+ * Defaults is to not set.
+ * How far along the video track we want to move, in seconds. It will automatically assign from duration of video and framesPerSecond. */
+@property(nonatomic, assign) NSUInteger frameCount;
+
+/* optional.
+ * Defaults is nil */
+@property (nonatomic, copy, nullable) NSGIFProgressHandler progressHandler;
+
+/* readonly
+ * status for gif creating job 'YES' equals to 'now proceeding'
+ */
+@property(atomic, readonly) BOOL proceeding;
 ```
 
 ## In the future, I will add a feature that can
