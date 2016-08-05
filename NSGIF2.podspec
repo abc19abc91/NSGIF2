@@ -8,7 +8,7 @@ Pod::Spec.new do |s|
   #
 
   s.name         = "NSGIF2"
-  s.version      = "1.4"
+  s.version      = "1.4.1"
   s.summary      = "Create a GIF from the provided video file url."
   s.homepage     = "https://github.com/metasmile/NSGIF2"
   s.screenshots  = "https://raw.githubusercontent.com/metasmile/NSGIF2/master/title.png"

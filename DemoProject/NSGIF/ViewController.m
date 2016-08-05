@@ -121,7 +121,7 @@
 
     UIScrollView * scrollView = [[UIScrollView alloc] initWithFrame:self.view.bounds];
 
-    NSFrameExtractingFromVideoRequest * request = [NSFrameExtractingFromVideoRequest requestWithSourceVideo:videoURL];
+    NSFrameExtractingRequest * request = [NSFrameExtractingRequest requestWithSourceVideo:videoURL];
     request.progressHandler = ^(double progress, NSUInteger offset, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
         NSLog(@"Progress: %@, %@, %@", [@(progress) stringValue], [@(offset) stringValue], [@(time.value) stringValue]);
     };

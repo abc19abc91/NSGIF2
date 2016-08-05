@@ -109,7 +109,7 @@ request.progressHandler = ^(double progress, NSUInteger position, NSUInteger len
 ## Usage - Extract each frames from a video to images.
 
 ```objective-c
-NSFrameExtractingFromVideoRequest * request = [NSFrameExtractingFromVideoRequest requestWithSourceVideo:videoURL];
+NSFrameExtractingRequest * request = [NSFrameExtractingRequest requestWithSourceVideo:videoURL];
 request.progressHandler = ^(double progress, NSUInteger offset, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
     // normalized progress, Zero to 1.
 };
@@ -120,7 +120,7 @@ request.framesPerSecond = 2;
 }];
 ```
 
-## Options - NSFrameExtractingFromVideoRequest
+## Options - NSFrameExtractingRequest
 ```objective-c
 /* required.
  * a file's url of source video */

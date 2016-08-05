@@ -92,7 +92,7 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
 @end
 
 #pragma mark NSExtractFramesRequest
-@interface NSFrameExtractingFromVideoRequest : NSSerializedResourceRequest
+@interface NSFrameExtractingRequest : NSSerializedResourceRequest
 /* optional.
  * Defaults to jpg.
  * This property will be affect to UTType(Automatically detected) of extracting image file.
@@ -109,5 +109,5 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
 
 + (void)create:(NSGIFRequest *__nullable)request completion:(void (^ __nullable)(NSURL * __nullable))completionBlock;
 
-+ (void)extract:(NSFrameExtractingFromVideoRequest *__nullable)request completion:(void (^ __nullable)(NSArray<NSURL *> * __nullable))completionBlock;
++ (void)extract:(NSFrameExtractingRequest *__nullable)request completion:(void (^ __nullable)(NSArray<NSURL *> * __nullable))completionBlock;
 @end

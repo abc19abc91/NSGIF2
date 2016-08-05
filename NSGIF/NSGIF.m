@@ -136,7 +136,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 @end
 
 #pragma mark - NSExtractFramesRequest
-@implementation NSFrameExtractingFromVideoRequest
+@implementation NSFrameExtractingRequest
 
 - (instancetype)init {
     self = [super init];
@@ -315,7 +315,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 
 #pragma mark Frame Extracter
 
-+ (void)extract:(NSFrameExtractingFromVideoRequest *__nullable)request completion:(void (^ __nullable)(NSArray<NSURL *> *__nullable))completionBlock {
++ (void)extract:(NSFrameExtractingRequest *__nullable)request completion:(void (^ __nullable)(NSArray<NSURL *> *__nullable))completionBlock {
     [request assert];
 
     // Create properties dictionaries
