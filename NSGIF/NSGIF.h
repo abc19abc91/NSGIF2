@@ -56,6 +56,14 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
 @property(nonatomic, assign) NSUInteger frameCount;
 
 /* optional.
+ * Defaults is to not set.
+ * This option will crop(via AspectFill Mode) fast while create each images. Their size will be automatically calculated.
+ * ex)
+ *  square  : aspectRatioToCrop = CGSizeMake(1,1)
+ *  16:9    : aspectRatioToCrop = CGSizeMake(16,9) */
+@property(nonatomic, assign) CGSize aspectRatioToCrop;
+
+/* optional.
  * Defaults is nil */
 @property (nonatomic, copy, nullable) NSGIFProgressHandler progressHandler;
 

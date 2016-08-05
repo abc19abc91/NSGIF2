@@ -71,6 +71,20 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
     return imageRef;
 }
 
+#define cropImageByRatioAspectFill(imageRef, sizeValueOfAspectRatio) \
+CGSize sourceImageSize = CGSizeMake(CGImageGetWidth(imageRef), CGImageGetHeight(imageRef)); \
+BOOL portrait = sourceImageSize.height >= sourceImageSize.width; \
+CGFloat ratio = MIN(sourceImageSize.width,sourceImageSize.height)/MAX(sourceImageSize.width,sourceImageSize.height); \
+CGFloat aspectRatio = sizeValueOfAspectRatio.width/sizeValueOfAspectRatio.height; \
+ratio *= portrait ? 1/aspectRatio : aspectRatio; \
+ratio = (CGFloat) (ratio>1 ? floor(ratio) : ratio); \
+CGRect cropRect = portrait ? CGRectMake(0,(1-ratio)/2.f, 1,ratio) : CGRectMake((1-ratio)/2.f,0, ratio,1); \
+imageRef = CGImageCreateWithImageInRect(imageRef, CGRectMake( \
+    (CGFloat)floor(cropRect.origin.x * sourceImageSize.width),\
+    (CGFloat)floor(cropRect.origin.y * sourceImageSize.height), \
+    (CGFloat)floor(cropRect.size.width * sourceImageSize.width), \
+    (CGFloat)floor(cropRect.size.height * sourceImageSize.height))) \
+
 #pragma mark - NSSerializedAssetRequest
 @interface NSSerializedResourceRequest()
 @property(atomic, assign) BOOL proceeding;
@@ -94,6 +108,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 - (void)assert{
     NSParameterAssert(self.sourceVideoFile);
     NSAssert(self.framesPerSecond>0, @"framesPerSecond must be higer than 0.");
+    NSAssert(self.aspectRatioToCrop.width>=0 && self.aspectRatioToCrop.height>=0, @"all values in aspectRatioToCrop must be same or higer than 0.");
 }
 @end
 
@@ -217,6 +232,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
                               frameProperties:frameProperties
                                    frameCount:frameCount
                                   outputScale:outputScale
+                            aspectRatioToCrop:request.aspectRatioToCrop
                                      progress:request.progressHandler];
 
         dispatch_group_leave(gifQueue);
@@ -240,6 +256,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
                   frameProperties:(NSDictionary *)frameProperties
                        frameCount:(NSUInteger)frameCount
                       outputScale:(CGFloat)outputScale
+                aspectRatioToCrop:(CGSize)aspectRatioToCrop
                          progress:(NSGIFProgressHandler)handler{
 
     NSParameterAssert(timePoints);
@@ -274,6 +291,10 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 #elif TARGET_OS_MAC
         imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
 #endif
+
+        if(!CGSizeEqualToSize(aspectRatioToCrop,CGSizeZero)){
+            cropImageByRatioAspectFill(imageRef,aspectRatioToCrop);
+        }
 
         NSAssert(!error, @"Error copying image to create gif");
         if (error) {
@@ -369,6 +390,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
                                                           toURL:request.destinationDirectory
                                                  fileProperties:nil
                                                     outputScale:outputScale
+                                                   aspectRatioToCrop:request.aspectRatioToCrop
                                                        progress:request.progressHandler];
 
         dispatch_group_leave(gifQueue);
@@ -389,6 +411,7 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
                                            toURL:(NSURL * const)destDir
                                   fileProperties:(NSDictionary * const)fileProperties
                                      outputScale:(CGFloat const)outputScale
+                               aspectRatioToCrop:(CGSize)aspectRatioToCrop
                                         progress:(NSGIFProgressHandler const)handler{
 
     NSParameterAssert(timePoints);
@@ -441,6 +464,9 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
         imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
 #endif
 
+        if(!CGSizeEqualToSize(aspectRatioToCrop,CGSizeZero)){
+            cropImageByRatioAspectFill(imageRef,aspectRatioToCrop);
+        }
         NSAssert(!error, @"Error copying image to create gif");
         if (error) {
             NSLog(@"Error copying image: %@", error);

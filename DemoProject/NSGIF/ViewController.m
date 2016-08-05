@@ -75,7 +75,10 @@
     
     NSURL *videoURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"video" ofType:@"mp4"]];
     
-    [NSGIF create:[NSGIFRequest requestWithSourceVideo:videoURL] completion:^(NSURL * GifURL) {
+    NSGIFRequest * request = [NSGIFRequest requestWithSourceVideo:videoURL];
+    request.aspectRatioToCrop = CGSizeMake(1,1);
+    
+    [NSGIF create:request completion:^(NSURL * GifURL) {
         NSLog(@"Finished generating GIF: %@", GifURL);
         
         [self.activityIndicator stopAnimating];
@@ -123,8 +126,9 @@
 
     NSFrameExtractingRequest * request = [NSFrameExtractingRequest requestWithSourceVideo:videoURL];
     request.progressHandler = ^(double progress, NSUInteger offset, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
-        NSLog(@"Progress: %@, %@, %@", [@(progress) stringValue], [@(offset) stringValue], [@(time.value) stringValue]);
+        NSLog(@"Progress: %@,", [@(progress) stringValue]);
     };
+    request.aspectRatioToCrop = CGSizeMake(4,3);
     request.frameCount = 10;
 
     [NSGIF extract:request completion:^(NSArray<NSURL *> *extractedFrameImageUrls) {
@@ -139,9 +143,12 @@
         }];
 
         for(NSURL * imageUrl in extractedFrameImageUrls){
-            UIView * imageView = [[UIImageView alloc] initWithImage:[UIImage imageWithContentsOfFile:imageUrl.path]];
+            UIImage * image = [UIImage imageWithContentsOfFile:imageUrl.path];
+            UIView * imageView = [[UIImageView alloc] initWithImage:image];
             imageView.contentMode = UIViewContentModeScaleAspectFit;
-            imageView.frame = CGRectMake(0,((CGFloat)[extractedFrameImageUrls indexOfObject:imageUrl])*30, 30,30);
+            imageView.frame = CGRectMake(0,((CGFloat)[extractedFrameImageUrls indexOfObject:imageUrl])*(image.size.height/6), image.size.width/6,image.size.height/6);
+            imageView.clipsToBounds = YES;
+            imageView.layer.borderWidth = 1;
             [scrollView addSubview:imageView];
         }
     }];
