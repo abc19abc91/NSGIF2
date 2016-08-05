@@ -393,7 +393,12 @@ CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 
     NSParameterAssert(timePoints);
     NSParameterAssert(url);
-    NSParameterAssert([[NSFileManager defaultManager] fileExistsAtPath:url.path isDirectory:NO]);
+    BOOL isDirectory;
+    NSParameterAssert([[NSFileManager defaultManager] fileExistsAtPath:url.path isDirectory:&isDirectory]);
+    NSAssert(!isDirectory, @"Given fromURL is must only be a file");
+    BOOL destDirExisted = [[NSFileManager defaultManager] fileExistsAtPath:destDir.path isDirectory:&isDirectory];
+    NSAssert(!destDir || destDirExisted, @"Given toURL does not exist.");
+    NSAssert(!destDir || isDirectory, @"Given toURL is must only be a directory");
     NSParameterAssert(destDir);
 
     NSMutableArray<NSURL *> * resultFrameImagesUrls = [NSMutableArray<NSURL *> array];
