@@ -3,7 +3,7 @@
 ![NSGIF2](https://raw.githubusercontent.com/metasmile/NSGIF2/master/title.png?v=2)
 [![Awesome](https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg)](https://github.com/vsouza/awesome-ios#gif)
 
-Create a GIF from the provided video file url.
+Create a GIF from the provided video file url, Or extract images from videos.
 
 *This repository has been separated from original repo along with some nontrivial different features, designs, and improvements. Please do diff each other, and visit [original repo](https://github.com/NSRare/NSGIF) for more information if you need.*
 
