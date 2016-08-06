@@ -77,7 +77,7 @@ BOOL portrait = sourceImageSize.height >= sourceImageSize.width; \
 CGFloat ratio = MIN(sourceImageSize.width,sourceImageSize.height)/MAX(sourceImageSize.width,sourceImageSize.height); \
 CGFloat aspectRatio = sizeValueOfAspectRatio.width/sizeValueOfAspectRatio.height; \
 ratio *= portrait ? 1/aspectRatio : aspectRatio; \
-ratio = (CGFloat) (ratio>1 ? floor(ratio) : ratio); \
+ratio = MIN(MAX(0,ratio),1); \
 CGRect cropRect = portrait ? CGRectMake(0,(1-ratio)/2.f, 1,ratio) : CGRectMake((1-ratio)/2.f,0, ratio,1); \
 imageRef = CGImageCreateWithImageInRect(imageRef, CGRectMake( \
     (CGFloat)floor(cropRect.origin.x * sourceImageSize.width),\
