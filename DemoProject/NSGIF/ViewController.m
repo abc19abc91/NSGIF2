@@ -32,7 +32,7 @@
 
         NSGIFRequest * request = [NSGIFRequest requestWithSourceVideo:url];
         request.progressHandler = ^(double progress, NSUInteger position, NSUInteger length, CMTime time, BOOL *stop, NSDictionary *frameProperties) {
-            NSLog(@"%f - %lu - %lu - %lld - %@", progress, position, length, time.value, frameProperties);
+            NSLog(@"%f - %d - %d - %lld - %@", progress, position, length, time.value, frameProperties);
         };
         
         [NSGIF create:request completion:^(NSURL * GifURL) {
@@ -74,9 +74,12 @@
     self.button3.enabled = NO;
     
     NSURL *videoURL = [NSURL fileURLWithPath:[[NSBundle mainBundle] pathForResource:@"video" ofType:@"mp4"]];
-    
+
+    NSLog(@"%@",videoURL);
+
     NSGIFRequest * request = [NSGIFRequest requestWithSourceVideo:videoURL];
-    request.aspectRatioToCrop = CGSizeMake(1,1);
+    request.scalePreset = NSGIFScaleOriginal;
+//    request.aspectRatioToCrop = CGSizeMake(1,1);
     
     [NSGIF create:request completion:^(NSURL * GifURL) {
         NSLog(@"Finished generating GIF: %@", GifURL);

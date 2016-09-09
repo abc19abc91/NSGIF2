@@ -10,6 +10,12 @@ Create a GIF from the provided video file url, Or extract images from videos.
 
 ## Installation
 
+### Framework Requirements
+
+```
+Accelerate.framework
+```
+
 There are 2 ways you can add NSGIF to your project:
 
 ### Manual

@@ -8,7 +8,7 @@ Pod::Spec.new do |s|
   #
 
   s.name         = "NSGIF2"
-  s.version      = "1.4.3"
+  s.version      = "1.5"
   s.summary      = "Create a GIF from the provided video file url."
   s.homepage     = "https://github.com/metasmile/NSGIF2"
   s.screenshots  = "https://raw.githubusercontent.com/metasmile/NSGIF2/master/title.png"
@@ -25,9 +25,7 @@ Pod::Spec.new do |s|
   s.license      = { :type => "MIT", :file => "LICENSE" }
   s.author       = { "Brian Lee" => "your@elie.camera", "Sebastian Dobrincu (original repo)" => "sebyddd@gmail.com" }
   s.platform     = :ios
-  s.platform     = :osx
   s.ios.deployment_target = '8.0'
-  s.osx.deployment_target = '10.9'
   s.source       = { :git => 'https://github.com/metasmile/NSGIF2.git', :tag => "#{s.version}" }
   s.source_files  = "NSGIF/*.{h,m}"
 
