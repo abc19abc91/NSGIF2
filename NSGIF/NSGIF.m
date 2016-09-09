@@ -5,6 +5,7 @@
 //
 
 #import "NSGIF.h"
+#import <Accelerate/Accelerate.h>
 
 // Declare constants
 #define prefix     @"NSGIF"
@@ -40,35 +41,65 @@ NSGIFScaleRatio(NSGIFScale scalePhase, CGSize sourceSize)
     }
 }
 
+CG_INLINE CGRect
+CGRectNormalizedCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
+    if(CGSizeEqualToSize(sizeValueOfAspectRatio, CGSizeZero)){
+        return (CGRect){CGPointZero, targetSize};
+    }
+    BOOL portrait = targetSize.height >= targetSize.width;
+    CGFloat ratio = MIN(targetSize.width,targetSize.height)/MAX(targetSize.width,targetSize.height);
+    CGFloat aspectRatio = sizeValueOfAspectRatio.width/sizeValueOfAspectRatio.height;
+    ratio *= portrait ? 1/aspectRatio : aspectRatio;
+    ratio = MIN(MAX(0,ratio), 1); //wrap
+    return portrait ? CGRectMake(0,(1-ratio)/2.f, 1,ratio) : CGRectMake((1-ratio)/2.f, 0, ratio, 1);
+}
+
+CG_INLINE CGRect
+CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
+    CGRect normalizedCropRect = CGRectNormalizedCropRegionAspectFill(targetSize,sizeValueOfAspectRatio);
+    if(CGSizeEqualToSize(normalizedCropRect.size, CGSizeZero)){
+        return (CGRect){CGPointZero, targetSize};
+    }
+    return CGRectMake(
+            (CGFloat)floor(normalizedCropRect.origin.x * targetSize.width),
+            (CGFloat)floor(normalizedCropRect.origin.y * targetSize.height),
+            (CGFloat)floor(normalizedCropRect.size.width * targetSize.width),
+            (CGFloat)floor(normalizedCropRect.size.height * targetSize.height)
+    );
+}
+
 CGImageRef createImageWithScale(CGImageRef imageRef, CGFloat scale) {
 
+    @autoreleasepool {
 #if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-    CGSize newSize = CGSizeMake(CGImageGetWidth(imageRef)*scale, CGImageGetHeight(imageRef)*scale);
-    CGRect newRect = CGRectIntegral(CGRectMake(0, 0, newSize.width, newSize.height));
-
-    UIGraphicsBeginImageContextWithOptions(newSize, NO, 0);
-    CGContextRef context = UIGraphicsGetCurrentContext();
-    if (!context) {
-        return nil;
+        CGSize newSize = CGSizeMake(CGImageGetWidth(imageRef)*scale, CGImageGetHeight(imageRef)*scale);
+        CGRect newRect = CGRectIntegral(CGRectMake(0, 0, newSize.width, newSize.height));
+        
+        UIGraphicsBeginImageContextWithOptions(newSize, NO, 0);
+        CGContextRef context = UIGraphicsGetCurrentContext();
+        if (!context) {
+            return nil;
+        }
+        
+        // Set the quality level to use when rescaling
+        CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
+        CGAffineTransform flipVertical = CGAffineTransformMake(1, 0, 0, -1, 0, newSize.height);
+        
+        CGContextConcatCTM(context, flipVertical);
+        // Draw into the context; this scales the image
+        CGContextDrawImage(context, newRect, imageRef);
+        
+        //Release old image
+        CFRelease(imageRef);
+        // Get the resized image from the context and a UIImage
+        imageRef = CGBitmapContextCreateImage(context);
+        
+        UIGraphicsEndImageContext();
+#endif
+        
+        return imageRef;
     }
 
-    // Set the quality level to use when rescaling
-    CGContextSetInterpolationQuality(context, kCGInterpolationHigh);
-    CGAffineTransform flipVertical = CGAffineTransformMake(1, 0, 0, -1, 0, newSize.height);
-
-    CGContextConcatCTM(context, flipVertical);
-    // Draw into the context; this scales the image
-    CGContextDrawImage(context, newRect, imageRef);
-
-    //Release old image
-    CFRelease(imageRef);
-    // Get the resized image from the context and a UIImage
-    imageRef = CGBitmapContextCreateImage(context);
-
-    UIGraphicsEndImageContext();
-#endif
-
-    return imageRef;
 }
 
 #define cropImageByRatioAspectFill(imageRef, sizeValueOfAspectRatio) \
@@ -156,6 +187,8 @@ imageRef = CGImageCreateWithImageInRect(imageRef, CGRectMake( \
 - (instancetype)init {
     self = [super init];
     if (self) {
+        self.scalePreset = NSGIFScaleOriginal;
+
         _extension = @"jpg";
         _destinationDirectory = [NSURL fileURLWithPath:NSTemporaryDirectory() isDirectory:YES];
     }
@@ -335,7 +368,6 @@ imageRef = CGImageCreateWithImageInRect(imageRef, CGRectMake( \
 
 
 #pragma mark Frame Extracter
-
 + (void)extract:(NSFrameExtractingRequest *__nullable)request completion:(void (^ __nullable)(NSArray<NSURL *> *__nullable))completionBlock {
     [request assert];
 
@@ -384,16 +416,19 @@ imageRef = CGImageCreateWithImageInRect(imageRef, CGRectMake( \
 
     typeof(self) __weak weakSelf = self;
     dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-        extractImageUrls = [weakSelf extractFramesforTimePoints:timePoints
-                                                      extension:request.extension
-                                                        fromURL:request.sourceVideoFile
-                                                          toURL:request.destinationDirectory
-                                                 fileProperties:nil
-                                                    outputScale:outputScale
-                                                   aspectRatioToCrop:request.aspectRatioToCrop
-                                                       progress:request.progressHandler];
+        @autoreleasepool {
+            extractImageUrls = [weakSelf extractFramesforTimePoints:timePoints
+                                                          extension:request.extension
+                                                            fromURL:request.sourceVideoFile
+                                                              toURL:request.destinationDirectory
+                                                        outputScale:outputScale
+                                                  aspectRatioToCrop:request.aspectRatioToCrop
+                                                           progress:request.progressHandler];
 
-        dispatch_group_leave(gifQueue);
+            dispatch_group_leave(gifQueue);
+        }
+
+
     });
 
     dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
@@ -409,7 +444,6 @@ imageRef = CGImageCreateWithImageInRect(imageRef, CGRectMake( \
                                        extension:(NSString * const)extension
                                          fromURL:(NSURL * const)url
                                            toURL:(NSURL * const)destDir
-                                  fileProperties:(NSDictionary * const)fileProperties
                                      outputScale:(CGFloat const)outputScale
                                aspectRatioToCrop:(CGSize)aspectRatioToCrop
                                         progress:(NSGIFProgressHandler const)handler{
@@ -439,62 +473,122 @@ imageRef = CGImageCreateWithImageInRect(imageRef, CGRectMake( \
     BOOL stop = NO;
 
     for (NSValue *time in timePoints) {
-        NSUInteger frameIndex = [timePoints indexOfObject:time];
+        @autoreleasepool {
+            NSUInteger frameIndex = [timePoints indexOfObject:time];
 
-        NSString * filePathComponent = [[[[url lastPathComponent]
-                stringByDeletingPathExtension]
-                stringByAppendingFormat:@"_extracted_frame_%d", (int) frameIndex]
-                stringByAppendingPathExtension:extension];
+            NSString * filePathComponent = [[[[url lastPathComponent]
+                    stringByDeletingPathExtension]
+                    stringByAppendingFormat:@"_extracted_frame_%d", (int) frameIndex]
+                    stringByAppendingPathExtension:extension];
 
-        CFStringRef UTType = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (__bridge CFStringRef)extension, NULL);
+            NSURL * destFileURL = [destDir URLByAppendingPathComponent:filePathComponent isDirectory:NO];
 
-        NSURL * destFileURL = [destDir URLByAppendingPathComponent:filePathComponent isDirectory:NO];
+            UIImage * frameImage = [UIImage imageWithCGImage:[generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error] scale:1 orientation:UIImageOrientationUp];
 
-        CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)destFileURL, UTType , 1, NULL);
-
-        CGImageRef imageRef;
-
-#if TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-        if(outputScale==1){
-            imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
-        }else{
-            imageRef = createImageWithScale([generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error], outputScale);
-        }
-#elif TARGET_OS_MAC
-        imageRef = [generator copyCGImageAtTime:[time CMTimeValue] actualTime:nil error:&error];
-#endif
-
-        if(!CGSizeEqualToSize(aspectRatioToCrop,CGSizeZero)){
-            cropImageByRatioAspectFill(imageRef,aspectRatioToCrop);
-        }
-        NSAssert(!error, @"Error copying image to create gif");
-        if (error) {
-            NSLog(@"Error copying image: %@", error);
-        }
-        CGImageDestinationAddImage(destination, imageRef, NULL);
-        CGImageRelease(imageRef);
-
-        NSUInteger position = [timePoints indexOfObject:time]+1;
-        !handler?:handler((CGFloat)position/lengthOfTimePoints,position, lengthOfTimePoints, [time CMTimeValue], &stop, nil);
-
-        if(stop){
-            break;
-        }
-
-        CGImageDestinationSetProperties(destination, (__bridge CFDictionaryRef)(fileProperties ?: @{}));
-        // Finalize the GIF
-        if (!CGImageDestinationFinalize(destination)) {
-            NSLog(@"Failed to finalize to destination path: %@", error);
-            if (destination != nil) {
-                CFRelease(destination);
+            //rescale
+            if(outputScale != 1){
+                frameImage = [self.class imageByScalingToFitSize:frameImage sizeToFit:CGSizeMake(frameImage.size.width*outputScale,frameImage.size.height*outputScale) rescaleTo:frameImage.scale];
             }
-            continue;
-        }
-        CFRelease(destination);
 
-        [resultFrameImagesUrls addObject:destFileURL];
+            //crop
+            if(!CGSizeEqualToSize(aspectRatioToCrop,CGSizeZero)){
+                frameImage = [self.class imageByCroppingRect:frameImage rect:CGRectCropRegionAspectFill(frameImage.size, aspectRatioToCrop)];
+            }
+
+            NSUInteger position = [timePoints indexOfObject:time]+1;
+            !handler?:handler((CGFloat)position/lengthOfTimePoints,position, lengthOfTimePoints, [time CMTimeValue], &stop, nil);
+
+            if(stop){
+                break;
+            }
+
+            if([self.class writeImage:frameImage toURL:destFileURL]){
+                [resultFrameImagesUrls addObject:destFileURL];
+            }
+        }
     }
 
     return resultFrameImagesUrls;
 }
+
+#pragma mark Utils - I/O
++ (BOOL)writeImage:(UIImage *)image toURL:(NSURL *)filePathURL{
+    NSData * imageData;
+    if([@"image/png" isEqualToString:[self mimeTypeFromPathExtension:[filePathURL path]]]){
+        imageData = UIImagePNGRepresentation(image);
+    }else{
+        imageData = UIImageJPEGRepresentation(image, 1);
+    }
+    return [imageData writeToURL:filePathURL atomically:YES];
+}
+
++ (NSString *)mimeTypeFromPathExtension:(NSString *)pathExtension {
+    CFStringRef UTI = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, (__bridge CFStringRef)pathExtension, NULL);
+    CFStringRef mimeType = UTTypeCopyPreferredTagWithClass (UTI, kUTTagClassMIMEType);
+    CFRelease(UTI);
+    if (!mimeType) {
+        return @"application/octet-stream";
+    }
+    NSString * _mimeType = (__bridge_transfer NSString*)mimeType;
+    return _mimeType;
+}
+
+#pragma mark Utils - Images
++ (UIImage *)imageByCroppingRect:(UIImage *)image rect:(CGRect)rect {
+    CGImageRef croppedImageRef = CGImageCreateWithImageInRect([image CGImage], rect);
+    UIImage *croppedImage = [UIImage imageWithCGImage:croppedImageRef scale:image.scale orientation:image.imageOrientation];
+    if (croppedImageRef) {
+        CGImageRelease(croppedImageRef);
+    }
+    return croppedImage;
+}
+
++ (UIImage*)imageByScalingToFitSize:(UIImage *)image sizeToFit:(CGSize)fitSize rescaleTo:(CGFloat)scaleToRescale{
+    CGImageRef sourceRef = image.CGImage;
+    vImage_Buffer srcBuffer;
+    vImage_CGImageFormat format = {
+            .bitsPerComponent = 8,
+            .bitsPerPixel = 32,
+            .colorSpace = NULL,
+            .bitmapInfo = (CGBitmapInfo) kCGImageAlphaFirst,
+            .version = 0,
+            .decode = NULL,
+            .renderingIntent = kCGRenderingIntentDefault,
+    };
+    vImage_Error ret = vImageBuffer_InitWithCGImage(&srcBuffer, &format, NULL, sourceRef, kvImageNoFlags);
+    if (ret != kvImageNoError) {
+        free(srcBuffer.data);
+        return nil;
+    }
+
+    const NSUInteger scale = (NSUInteger) scaleToRescale;
+    const NSUInteger dstWidth = (NSUInteger) fitSize.width * scale;
+    const NSUInteger dstHeight = (NSUInteger) fitSize.height * scale;
+    const NSUInteger bytesPerPixel = 4;
+    const NSUInteger dstBytesPerRow = bytesPerPixel * dstWidth;
+    uint8_t *dstData = (uint8_t *) calloc(dstHeight * dstWidth * bytesPerPixel, sizeof(uint8_t));
+    vImage_Buffer dstBuffer = {
+            .data = dstData,
+            .height = dstHeight,
+            .width = dstWidth,
+            .rowBytes = dstBytesPerRow
+    };
+
+    ret = vImageScale_ARGB8888(&srcBuffer, &dstBuffer, NULL, kvImageHighQualityResampling);
+    free(srcBuffer.data);
+    if (ret != kvImageNoError) {
+        free(dstData);
+        return nil;
+    }
+
+    ret = kvImageNoError;
+    CGImageRef destRef = vImageCreateCGImageFromBuffer(&dstBuffer, &format, NULL, NULL, kvImageNoFlags, &ret);
+    free(dstData);
+
+    UIImage *destImage = [[UIImage alloc] initWithCGImage:destRef scale:0.0 orientation:image.imageOrientation];
+    CGImageRelease(destRef);
+
+    return destImage;
+}
+
 @end
