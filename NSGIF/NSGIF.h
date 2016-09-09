@@ -9,14 +9,8 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <ImageIO/ImageIO.h>
 #import <AVFoundation/AVFoundation.h>
-
-#if TARGET_OS_IPHONE
 #import <MobileCoreServices/MobileCoreServices.h>
 #import <UIKit/UIKit.h>
-#elif TARGET_OS_MAC
-#import <CoreServices/CoreServices.h>
-    #import <WebKit/WebKit.h>
-#endif
 
 typedef NS_ENUM(NSInteger, NSGIFScale) {
     NSGIFScaleOptimize,
