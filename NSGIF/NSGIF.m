@@ -269,7 +269,7 @@ CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
             //rescale
             if(outputScale != 1){
-                currentFrameImage = [self.class imageByScalingToFitSize:currentFrameImage sizeToFit:CGSizeMake(currentFrameImage.size.width*outputScale,currentFrameImage.size.height*outputScale) rescaleTo:currentFrameImage.scale];
+                currentFrameImage = [self.class imageByScalingToFill:currentFrameImage size:CGSizeMake(currentFrameImage.size.width * outputScale, currentFrameImage.size.height * outputScale) rescaleTo:currentFrameImage.scale];
             }
             //crop
             if(!CGSizeEqualToSize(aspectRatioToCrop,CGSizeZero)){
@@ -439,7 +439,7 @@ CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
             //rescale
             if(outputScale != 1){
-                currentFrameImage = [self.class imageByScalingToFitSize:currentFrameImage sizeToFit:CGSizeMake(currentFrameImage.size.width*outputScale,currentFrameImage.size.height*outputScale) rescaleTo:currentFrameImage.scale];
+                currentFrameImage = [self.class imageByScalingToFill:currentFrameImage size:CGSizeMake(currentFrameImage.size.width * outputScale, currentFrameImage.size.height * outputScale) rescaleTo:currentFrameImage.scale];
             }
 
             //crop
@@ -495,7 +495,7 @@ CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     return croppedImage;
 }
 
-+ (UIImage*)imageByScalingToFitSize:(UIImage *)image sizeToFit:(CGSize)fitSize rescaleTo:(CGFloat)scaleToRescale{
++ (UIImage*)imageByScalingToFill:(UIImage *)image size:(CGSize)fillSize rescaleTo:(CGFloat)scaleToRescale{
     CGImageRef sourceRef = image.CGImage;
     vImage_Buffer srcBuffer;
     vImage_CGImageFormat format = {
@@ -514,8 +514,8 @@ CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     }
 
     const NSUInteger scale = (NSUInteger) scaleToRescale;
-    const NSUInteger dstWidth = (NSUInteger) fitSize.width * scale;
-    const NSUInteger dstHeight = (NSUInteger) fitSize.height * scale;
+    const NSUInteger dstWidth = (NSUInteger) fillSize.width * scale;
+    const NSUInteger dstHeight = (NSUInteger) fillSize.height * scale;
     const NSUInteger bytesPerPixel = 4;
     const NSUInteger dstBytesPerRow = bytesPerPixel * dstWidth;
     uint8_t *dstData = (uint8_t *) calloc(dstHeight * dstWidth * bytesPerPixel, sizeof(uint8_t));
