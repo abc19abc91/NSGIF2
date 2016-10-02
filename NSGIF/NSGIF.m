@@ -41,8 +41,8 @@ NSGIFScaleRatio(NSGIFScale scalePhase, CGSize sourceSize)
     }
 }
 
-CG_INLINE CGRect
-CGRectNormalizedCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
+static CGRect
+NormalizedCropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     if(CGSizeEqualToSize(sizeValueOfAspectRatio, CGSizeZero)){
         return (CGRect){CGPointZero, targetSize};
     }
@@ -55,8 +55,8 @@ CGRectNormalizedCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspect
 }
 
 CG_INLINE CGRect
-CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
-    CGRect normalizedCropRect = CGRectNormalizedCropRegionAspectFill(targetSize,sizeValueOfAspectRatio);
+CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
+    CGRect normalizedCropRect = NormalizedCropRectAspectFill(targetSize,sizeValueOfAspectRatio);
     if(CGSizeEqualToSize(normalizedCropRect.size, CGSizeZero)){
         return (CGRect){CGPointZero, targetSize};
     }
@@ -273,7 +273,7 @@ CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
             }
             //crop
             if(!CGSizeEqualToSize(aspectRatioToCrop,CGSizeZero)){
-                currentFrameImage = [self.class imageByCroppingRect:currentFrameImage rect:CGRectCropRegionAspectFill(currentFrameImage.size, aspectRatioToCrop)];
+                currentFrameImage = [self.class imageByCroppingRect:currentFrameImage rect:CropRectAspectFill(currentFrameImage.size, aspectRatioToCrop)];
             }
 
             NSAssert(!error, @"Error copying image to create gif");
@@ -336,25 +336,30 @@ CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     // set result output scale ratio
     CGFloat outputScale = NSGIFScaleRatio(request.scalePreset, ((AVAssetTrack *)assetTracks[0]).naturalSize);
 
+    CMTimeScale const timeScale = MIN(asset.duration.timescale, ((AVAssetTrack *)assetTracks[0]).naturalTimeScale);
+
     // Get the length of the video in seconds
-    CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
+    double videoDurationInSec = (double)asset.duration.value/timeScale;
 
     // Clip videoLength via given max duration if needed
     if(request.maxDuration > 0){
-        videoLength = (CGFloat)MIN(request.maxDuration, videoLength);
+        videoDurationInSec = MIN(request.maxDuration, videoDurationInSec);
     }
 
+    // Configured framesPerSecond will be ignored if it was lower than nominalFrameRate of AVAssetTrack
+    float const frameRate = MAX(request.framesPerSecond, ((AVAssetTrack *)assetTracks[0]).nominalFrameRate);
+
     // Automatically set framecount by given framesPerSecond
-    NSUInteger frameCount = request.frameCount ?: (NSUInteger) (videoLength * request.framesPerSecond);
+    NSUInteger frameCount = request.frameCount ?: (NSUInteger) (videoDurationInSec * frameRate);
 
     // How far along the video track we want to move, in seconds.
-    CGFloat increment = (CGFloat)videoLength/frameCount;
+    double const increment = videoDurationInSec/(frameCount>1 ? (frameCount-1) : frameCount);
 
     // Add frames to the buffer
     NSMutableArray *timePoints = [NSMutableArray array];
-    for (int currentFrame = 0; currentFrame<frameCount; ++currentFrame) {
-        CGFloat seconds = (CGFloat)increment * currentFrame;
-        CMTime time = CMTimeMakeWithSeconds(seconds, [timeInterval intValue]);
+    for (int currentFrameIndex = 0; currentFrameIndex<frameCount; ++currentFrameIndex) {
+        double seconds = increment * currentFrameIndex;
+        CMTime time = CMTimeMakeWithSeconds(seconds, timeScale);
         [timePoints addObject:[NSValue valueWithCMTime:time]];
     }
 
@@ -416,7 +421,8 @@ CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     AVAssetImageGenerator *generator = [AVAssetImageGenerator assetImageGeneratorWithAsset:asset];
     generator.appliesPreferredTrackTransform = YES;
 
-    CMTime tol = CMTimeMakeWithSeconds([tolerance floatValue], [timeInterval intValue]);
+    CMTime firstFrameTime = [[timePoints firstObject] CMTimeValue];
+    CMTime tol = CMTimeMakeWithSeconds([tolerance floatValue], firstFrameTime.timescale);
     generator.requestedTimeToleranceBefore = tol;
     generator.requestedTimeToleranceAfter = tol;
 
@@ -444,7 +450,7 @@ CGRectCropRegionAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
             //crop
             if(!CGSizeEqualToSize(aspectRatioToCrop,CGSizeZero)){
-                currentFrameImage = [self.class imageByCroppingRect:currentFrameImage rect:CGRectCropRegionAspectFill(currentFrameImage.size, aspectRatioToCrop)];
+                currentFrameImage = [self.class imageByCroppingRect:currentFrameImage rect:CropRectAspectFill(currentFrameImage.size, aspectRatioToCrop)];
             }
 
             NSUInteger position = [timePoints indexOfObject:time]+1;
