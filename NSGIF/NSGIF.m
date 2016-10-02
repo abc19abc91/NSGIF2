@@ -346,8 +346,8 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
         videoDurationInSec = MIN(request.maxDuration, videoDurationInSec);
     }
 
-    // Configured framesPerSecond will be ignored if it was lower than nominalFrameRate of AVAssetTrack
-    float const frameRate = MAX(request.framesPerSecond, ((AVAssetTrack *)assetTracks[0]).nominalFrameRate);
+    // Configured framesPerSecond will be ignored if it was higher than nominalFrameRate of AVAssetTrack
+    float const frameRate = MIN(request.framesPerSecond, ((AVAssetTrack *)assetTracks[0]).nominalFrameRate);
 
     // Automatically set framecount by given framesPerSecond
     NSUInteger frameCount = request.frameCount ?: (NSUInteger) (videoDurationInSec * frameRate);
