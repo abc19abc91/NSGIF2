@@ -26,6 +26,7 @@ NSGIFScaleRatio(NSGIFScale scalePhase, CGSize sourceSize)
             return .7f;
         case NSGIFScaleOriginal:
             return 1;
+        case NSGIFScaleOptimize:
         default:{
             NSGIFScale targetScalePhase = NSGIFScaleMedium;
             if (sourceSize.width >= 1200 || sourceSize.height >= 1200)
