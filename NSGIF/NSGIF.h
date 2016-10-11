@@ -107,9 +107,22 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
 @property(nullable, nonatomic) NSURL * destinationDirectory;
 @end
 
+#pragma mark NSSerializedResourceResponse
+@interface NSSerializedResourceResponse : NSObject
+
+@property(nonatomic, readonly) NSArray<NSURL *> * imageUrls;
+
+@end
+
+@interface NSFrameExtractingResponse : NSSerializedResourceResponse
+
+@property(nonatomic, readonly) NSTimeInterval durationOfFrames;
+
+@end
+
 @interface NSGIF : NSObject
 
 + (void)create:(NSGIFRequest *__nullable)request completion:(void (^ __nullable)(NSURL * __nullable))completionBlock;
 
-+ (void)extract:(NSFrameExtractingRequest *__nullable)request completion:(void (^ __nullable)(NSArray<NSURL *> * __nullable))completionBlock;
++ (void)extract:(NSFrameExtractingRequest *__nullable)request completion:(void (^ __nullable)(NSFrameExtractingResponse * __nullable))completionBlock;
 @end

@@ -148,9 +148,36 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 }
 @end
 
+
+#pragma mark - NSSerializedResourceResponse
+@implementation NSSerializedResourceResponse : NSObject
+
+- (instancetype)initWithImageURLs:(NSArray<NSURL *>*)urls {
+    self = [self init];
+    if (self) {
+        _imageUrls = urls;
+    }
+    return self;
+}
+
++ (instancetype)responseWithImageURLs:(NSArray<NSURL *>*)urls {
+    return [[self alloc] initWithImageURLs:urls];
+}
+@end
+
+
+#pragma mark - NSFrameExtractingResponse
+@interface NSFrameExtractingResponse()
+@property(nonatomic, assign) NSTimeInterval durationOfFrames;
+@end
+
+@implementation NSFrameExtractingResponse
+@end
+
+#pragma mark - NSGIF
 @implementation NSGIF
 
-#pragma mark - Public methods
+#pragma mark - NSGIF - create
 + (void)create:(NSGIFRequest *__nullable)request completion:(void (^ __nullable)(NSURL *__nullable))completionBlock {
     [request assert];
 
@@ -321,7 +348,7 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
 #pragma mark Frame Extracter
 
-+ (void)extract:(NSFrameExtractingRequest *__nullable)request completion:(void (^ __nullable)(NSArray<NSURL *> *__nullable))completionBlock {
++ (void)extract:(NSFrameExtractingRequest *__nullable)request completion:(void (^ __nullable)(NSFrameExtractingResponse *__nullable))completionBlock {
     [request assert];
 
     // Create properties dictionaries
@@ -354,12 +381,12 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     NSUInteger frameCount = request.frameCount ?: (NSUInteger) (videoDurationInSec * frameRate);
 
     // How far along the video track we want to move, in seconds.
-    double const increment = videoDurationInSec/(frameCount>1 ? (frameCount-1) : frameCount);
+    double const incrementSec = videoDurationInSec/(frameCount>1 ? (frameCount-1) : frameCount);
 
     // Add frames to the buffer
     NSMutableArray *timePoints = [NSMutableArray array];
     for (int currentFrameIndex = 0; currentFrameIndex<frameCount; ++currentFrameIndex) {
-        double seconds = increment * currentFrameIndex;
+        double seconds = incrementSec * currentFrameIndex;
         CMTime time = CMTimeMakeWithSeconds(seconds, timeScale);
         [timePoints addObject:[NSValue valueWithCMTime:time]];
     }
@@ -392,7 +419,10 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     dispatch_group_notify(gifQueue, dispatch_get_main_queue(), ^{
         // Return GIF URL
         request.proceeding = NO;
-        completionBlock(extractImageUrls);
+        NSFrameExtractingResponse * response = [NSFrameExtractingResponse responseWithImageURLs:extractImageUrls];
+        response.durationOfFrames = videoDurationInSec;
+        completionBlock(response);
+
         extractImageUrls = nil;
         request.progressHandler = nil;
     });
