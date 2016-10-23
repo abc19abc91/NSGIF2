@@ -26,6 +26,7 @@ Pod::Spec.new do |s|
   s.author       = { "Brian Lee" => "your@elie.camera", "Sebastian Dobrincu (original repo)" => "sebyddd@gmail.com" }
   s.platform     = :ios
   s.ios.deployment_target = '8.0'
+  s.tvos.deployment_target = '9.0'
   s.source       = { :git => 'https://github.com/metasmile/NSGIF2.git', :tag => "#{s.version}" }
   s.source_files  = "NSGIF/*.{h,m}"
 
