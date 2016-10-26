@@ -204,7 +204,7 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     }
 
     // set result output scale ratio
-    CGFloat outputScale = NSGIFScaleRatio(request.scalePreset, ((AVAssetTrack *)assetTracks[0]).naturalSize);
+    CGFloat outputScale = request.hardScale ?: NSGIFScaleRatio(request.scalePreset, ((AVAssetTrack *)assetTracks[0]).naturalSize);
 
     // Get the length of the video in seconds
     CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
