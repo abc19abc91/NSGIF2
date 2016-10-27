@@ -83,6 +83,11 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     return self;
 }
 
+- (NSTimeInterval)durationMeasured {
+    double duration = self.frameCount/self.framesPerSecond;
+    return duration>0 ? MIN(self.maxDuration, duration) : self.maxDuration;
+}
+
 + (instancetype)requestWithSourceVideo:(NSURL *)fileURL {
     return [[self alloc] initWithSourceVideo:fileURL];
 }

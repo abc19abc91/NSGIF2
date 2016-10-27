@@ -38,6 +38,10 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
  * Defaults is to not set. unit is seconds, which means unlimited */
 @property(nonatomic, assign) NSTimeInterval maxDuration;
 
+/* readonly
+ * Automatically measure from maxDuration, framesPerSecond and frameCount */
+@property(nonatomic, readonly) NSTimeInterval durationMeasured;
+
 /* optional but important.
  * Defaults to 4.
  * number of frames in seconds.
