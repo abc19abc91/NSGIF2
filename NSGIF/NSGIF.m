@@ -222,6 +222,11 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
         [timePoints addObject:[NSValue valueWithCMTime:time]];
     }
 
+    //Append reversed frames if needed
+    if(request.appendReversedFrames && timePoints.count>2){
+        [timePoints addObjectsFromArray:[[timePoints reverse] subarrayWithRange:NSMakeRange(1, timePoints.count-1)]];
+    }
+
     // Create properties dictionaries
     NSDictionary * const fileProperties = @{
             (NSString *)kCGImagePropertyGIFDictionary: @{

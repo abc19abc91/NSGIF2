@@ -87,6 +87,11 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
  * the number of times the GIF will repeat. which means repeat infinitely. */
 @property(nonatomic, assign) NSUInteger loopCount;
 
+/* optional.
+ * Defaults to NO,
+ * Useful option to make auto-reversing animation */
+@property(nonatomic, assign) BOOL appendReversedFrames;
+
 + (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL destination:(NSURL * __nullable)videoFileURL;
 + (NSGIFRequest * __nonnull)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL;
 @end
