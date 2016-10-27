@@ -83,12 +83,6 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
  * the number of times the GIF will repeat. which means repeat infinitely. */
 @property(nonatomic, assign) NSUInteger loopCount;
 
-/* optional.
- * Defaults to 0.13.
- * unit is 10ms, 1/100s, the amount of time for each frame in the GIF.
- * This option will NOT affect gif file size, memory usage and processing speed. It affect only FPS. */
-@property(nonatomic, assign) CGFloat delayTime;
-
 + (NSGIFRequest * __nonnull)requestWithSourceVideo:(NSURL * __nullable)fileURL destination:(NSURL * __nullable)videoFileURL;
 + (NSGIFRequest * __nonnull)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL;
 @end

@@ -9,7 +9,6 @@
 
 // Declare constants
 #define prefix     @"NSGIF"
-#define timeInterval @(600)
 #define tolerance    @(0.01)
 
 CG_INLINE CGFloat
@@ -98,14 +97,6 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 #pragma mark - NSGIFRequest
 @implementation NSGIFRequest
 
-- (instancetype)init {
-    self = [super init];
-    if (self) {
-        self.delayTime = 0.13f;
-    }
-    return self;
-}
-
 + (instancetype)requestWithSourceVideo:(NSURL *)fileURL destination:(NSURL *)videoFileURL {
     NSGIFRequest * request = [[self alloc] initWithSourceVideo:fileURL];
     request.destinationVideoFile = videoFileURL;
@@ -114,7 +105,6 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
 + (instancetype)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL {
     NSGIFRequest * request = [[NSGIFRequest alloc] initWithSourceVideo:fileURL];
-    request.delayTime = 0.1f;
     request.framesPerSecond = 8;
     return request;
 }
@@ -181,19 +171,6 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 + (void)create:(NSGIFRequest *__nullable)request completion:(void (^ __nullable)(NSURL *__nullable))completionBlock {
     [request assert];
 
-    // Create properties dictionaries
-    NSDictionary *fileProperties = @{
-            (NSString *)kCGImagePropertyGIFDictionary: @{
-                    (NSString *)kCGImagePropertyGIFLoopCount: @(request.loopCount)
-            }
-    };
-    NSDictionary *frameProperties = @{
-            (NSString *)kCGImagePropertyGIFDictionary: @{
-                    (NSString *)kCGImagePropertyGIFDelayTime: @(request.delayTime)
-            },
-            (NSString *)kCGImagePropertyColorModel: (NSString *)kCGImagePropertyColorModelRGB
-    };
-
     AVURLAsset *asset = [AVURLAsset assetWithURL:request.sourceVideoFile];
     NSArray * assetTracks = [asset tracksWithMediaType:AVMediaTypeVideo];
     NSAssert(assetTracks.count,@"Not found any AVMediaTypeVideo in AVURLAsset which fetched from given sourceVideo file url");
@@ -206,27 +183,53 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     // set result output scale ratio
     CGFloat outputScale = NSGIFScaleRatio(request.scalePreset, ((AVAssetTrack *)assetTracks[0]).naturalSize);
 
+    // measure minimum timescale
+    CMTimeScale const timeScale = MIN(asset.duration.timescale, ((AVAssetTrack *)assetTracks[0]).naturalTimeScale);
+
     // Get the length of the video in seconds
-    CGFloat videoLength = (CGFloat)asset.duration.value/asset.duration.timescale;
+    double videoDurationInSec = asset.duration.value/timeScale;
 
     // Clip videoLength via given max duration if needed
     if(request.maxDuration > 0){
-        videoLength = (CGFloat)MIN(request.maxDuration, videoLength);
+        videoDurationInSec = MIN(request.maxDuration, videoDurationInSec);
     }
 
-    // Automatically set framecount by given framesPerSecond
-    NSUInteger frameCount = request.frameCount ?: (NSUInteger) (videoLength * request.framesPerSecond);
+    // Configured framesPerSecond will be ignored if it was lower than nominalFrameRate of AVAssetTrack
+    float const frameRate = MAX(request.framesPerSecond, ((AVAssetTrack *)assetTracks[0]).nominalFrameRate);
+
+    // frameLength, not Integer
+    double const frameLength = videoDurationInSec * frameRate;
+
+    // frame absolute delay time "{N.nnn}s"
+    double const frameDelayTimeInSecWithMilliseconds = videoDurationInSec/frameLength;
+
+    // Automatically set framecount by given framesPerSecond "{N}"
+    NSUInteger frameCount = request.frameCount ?: (NSUInteger) floor(frameLength);
 
     // How far along the video track we want to move, in seconds.
-    CGFloat increment = (CGFloat)videoLength/frameCount;
+    double const frameGapTimeByCountInSec = videoDurationInSec/MAX(frameCount-1,0);
 
     // Add frames to the buffer
     NSMutableArray *timePoints = [NSMutableArray array];
-    for (int currentFrame = 0; currentFrame<frameCount; ++currentFrame) {
-        CGFloat seconds = (CGFloat)increment * currentFrame;
-        CMTime time = CMTimeMakeWithSeconds(seconds, [timeInterval intValue]);
+    for (int currentFrameIndex = 0; currentFrameIndex<frameCount; ++currentFrameIndex) {
+        double seconds = frameGapTimeByCountInSec * currentFrameIndex;
+        CMTime time = CMTimeMakeWithSeconds(seconds, timeScale);
         [timePoints addObject:[NSValue valueWithCMTime:time]];
     }
+
+    // Create properties dictionaries
+    NSDictionary * const fileProperties = @{
+            (NSString *)kCGImagePropertyGIFDictionary: @{
+                    (NSString *)kCGImagePropertyGIFLoopCount: @(request.loopCount)
+            }
+    };
+    NSDictionary * const frameProperties = @{
+            (NSString *)kCGImagePropertyGIFDictionary: @{
+                    //Seconds, If a time of 50 milliseconds or less is specified, then the actual delay time stored in this parameter is 100 miliseconds. See kCGImagePropertyGIFUnclampedDelayTime.
+                    (NSString *)kCGImagePropertyGIFDelayTime: @(frameDelayTimeInSecWithMilliseconds)
+            },
+            (NSString *)kCGImagePropertyColorModel: (NSString *)kCGImagePropertyColorModelRGB
+    };
 
     // Prepare group for firing completion block
     dispatch_group_t gifQueue = dispatch_group_create();
@@ -283,7 +286,8 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     AVAssetImageGenerator *generator = [AVAssetImageGenerator assetImageGeneratorWithAsset:asset];
     generator.appliesPreferredTrackTransform = YES;
 
-    CMTime tol = CMTimeMakeWithSeconds([tolerance floatValue], [timeInterval intValue]);
+    CMTime firstFrameTime = [[timePoints firstObject] CMTimeValue];
+    CMTime tol = CMTimeMakeWithSeconds([tolerance floatValue], firstFrameTime.timescale);
     generator.requestedTimeToleranceBefore = tol;
     generator.requestedTimeToleranceAfter = tol;
 
@@ -381,12 +385,12 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     NSUInteger frameCount = request.frameCount ?: (NSUInteger) (videoDurationInSec * frameRate);
 
     // How far along the video track we want to move, in seconds.
-    double const incrementSec = videoDurationInSec/(frameCount>1 ? (frameCount-1) : frameCount);
+    double const frameGapTimeInSec = videoDurationInSec/(frameCount>1 ? (frameCount-1) : frameCount);
 
     // Add frames to the buffer
     NSMutableArray *timePoints = [NSMutableArray array];
     for (int currentFrameIndex = 0; currentFrameIndex<frameCount; ++currentFrameIndex) {
-        double seconds = incrementSec * currentFrameIndex;
+        double seconds = frameGapTimeInSec * currentFrameIndex;
         CMTime time = CMTimeMakeWithSeconds(seconds, timeScale);
         [timePoints addObject:[NSValue valueWithCMTime:time]];
     }
