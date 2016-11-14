@@ -118,6 +118,7 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
 + (instancetype)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL {
     NSGIFRequest * request = [[self alloc] initWithSourceVideo:fileURL];
+    request.framesPerSecond = 8;
     return request;
 }
 
