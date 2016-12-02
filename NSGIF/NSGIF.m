@@ -1,6 +1,6 @@
 //
 //  NSGIF.m
-//
+//  
 //  Created by Metasmile (github.com/metasmile)
 //
 
@@ -74,18 +74,10 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
 @implementation NSSerializedResourceRequest : NSObject
 
-- (instancetype)init {
-    self = [super init];
-    if (self) {
-        self.framesPerSecond = 4;
-    }
-    return self;
-}
-
-
 - (instancetype)initWithSourceVideo:(NSURL *)fileURL {
     self = [self init];
     if (self) {
+        self.framesPerSecond = 4;
         self.sourceVideoFile = fileURL;
     }
     return self;
@@ -117,7 +109,7 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 }
 
 + (instancetype)requestWithSourceVideoForLivePhoto:(NSURL *__nullable)fileURL {
-    NSGIFRequest * request = [[self alloc] initWithSourceVideo:fileURL];
+    NSGIFRequest * request = [[NSGIFRequest alloc] initWithSourceVideo:fileURL];
     request.framesPerSecond = 8;
     return request;
 }
@@ -232,7 +224,7 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
     //Append reversed frames if needed
     if(request.appendReversedFrames && timePoints.count>2){
-        [timePoints addObjectsFromArray:[[timePoints reverseObjectEnumerator].allObjects subarrayWithRange:NSMakeRange(1, timePoints.count-1)]];
+        [timePoints addObjectsFromArray:[[timePoints reverse] subarrayWithRange:NSMakeRange(1, timePoints.count-1)]];
     }
 
     // Create properties dictionaries
