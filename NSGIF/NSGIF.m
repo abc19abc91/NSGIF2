@@ -224,7 +224,7 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
     //Append reversed frames if needed
     if(request.appendReversedFrames && timePoints.count>2){
-        [timePoints addObjectsFromArray:[[timePoints reverse] subarrayWithRange:NSMakeRange(1, timePoints.count-1)]];
+        [timePoints addObjectsFromArray:[[timePoints reverseObjectEnumerator].allObjects subarrayWithRange:NSMakeRange(1, timePoints.count-1)]];
     }
 
     // Create properties dictionaries
