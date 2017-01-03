@@ -186,7 +186,7 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
     }
 
     // set result output scale ratio
-    CGFloat outputScale = NSGIFScaleRatio(request.scalePreset, ((AVAssetTrack *)assetTracks[0]).naturalSize);
+    CGFloat outputScale = request.hardScale ?: NSGIFScaleRatio(request.scalePreset, ((AVAssetTrack *)assetTracks[0]).naturalSize);
 
     // measure minimum timescale
     CMTimeScale const timeScale = MIN(asset.duration.timescale, ((AVAssetTrack *)assetTracks[0]).naturalTimeScale);

@@ -29,6 +29,11 @@ typedef void (^ NSGIFProgressHandler)(double progress, NSUInteger offset, NSUInt
  * a file's url of source video */
 @property(nullable, nonatomic) NSURL * sourceVideoFile;
 
+/*optional (addition by Sean Howard)
+ * ignoring any other parameters, will scale according to scale value
+ */
+@property(nonatomic, assign) CGFloat hardScale;
+
 /* optional but important.
  * Defaults to NSGIFScaleOptimize (not set).
  * This option will affect gif file size, memory usage and processing speed. */
