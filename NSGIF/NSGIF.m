@@ -590,6 +590,10 @@ CropRectAspectFill(CGSize targetSize, CGSize sizeValueOfAspectRatio){
 
     UIImage *destImage = [[UIImage alloc] initWithCGImage:destRef scale:0.0 orientation:image.imageOrientation];
     CGImageRelease(destRef);
+    
+    //change by tb,fix bug
+    //https://github.com/metasmile/NSGIF2/issues/12
+    CGImageRelease(sourceRef);
 
     return destImage;
 }
